@@ -1,0 +1,214 @@
+% Copyright 2015, Dustin Lang (CMU).
+% All rights reserved.
+
+\documentclass[11pt,preprint]{aastex}
+\usepackage{amssymb,amsmath,mathrsfs,color}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{multirow}
+
+\hypersetup{pdftitle={},
+pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
+
+\newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
+
+\newcommand{\foreign}[1]{\emph{#1}}
+\newcommand{\etal}{\foreign{et\,al.}}
+\newcommand{\ie}{\foreign{i.e.}}
+\newcommand{\figref}[1]{\figurename~\ref{#1}}
+\newcommand{\Figref}[1]{\figref{#1}}
+\newcommand{\niceurl}[1]{\href{#1}{\textsl{#1}}}
+\newcommand{\project}[1]{\textsl{#1}}
+\newcommand{\conv}{\otimes}
+
+\keywords{methods: data analysis --- surveys --- techniques: image processing}
+
+\begin{document}
+
+\title{A trick for fast galaxy--PSF convolution}
+\author{Dustin~Lang}
+\email{dstn@cmu.edu}
+\affil%
+{McWilliams Center for Cosmology,
+  Department of Physics, \\ Carnegie Mellon University,
+  5000 Forbes Ave, Pittsburgh, PA 15213, USA}
+\date{}
+\shorttitle{Fast Galaxy--PSF Convolution}
+\shortauthors{Lang}
+
+\begin{abstract}
+  I present a trick for the fast convolution of a model galaxy profile
+  by a point-spread function (PSF) model that can be represented in
+  the Fourier domain.  The trick relies upon two observations: First, most
+  simple galaxy profiles of common interest (deVaucouleurs,
+  exponential, S\'ersic) can be approximated as mixtures of Gaussians.
+  Second, the Fourier transform of a Gaussian is a Gaussian, thus the
+  Fourier transform of a mixture-of-Gausssian approximation of a
+  galaxy can be directly evaluated in Fourier space.  This trick
+  allows the use of pixelized PSF models (ie, a PSF represented as a
+  grid of pixel values) in galaxy model-fitting approaches such as
+  \project{the Tractor}.
+\end{abstract}
+
+\section{Introduction}
+
+A number of codes exist to render images of galaxies as they would
+appear when observed with a (real or imagined) telescope and camera,
+and given observing conditions (sky brightness, atmosphere).  These
+include \project{GalSim} \citep{galsim}, \project{Ufig} \citep{ufig},
+\project{phosim} \citep{phosim}, \project{galfit} \citep{galfit}, and
+several others.
+
+%\project{MegaMorph} \citep{megamorph}, 
+
+In codes that simulate at the pixel level rather than the photon
+level, it is necessary to convolve a galaxy's appearance ``above the
+atmosphere'' by the point-spread function to produce the image as it
+would appear on the CCD.  This step often dominates the computation
+time required to render a galaxy.  Since model galaxy profiles such as
+the deVaucouleurs profile are very ``peaky'', typical galaxy images
+``above the atmosphere'' are undersampled by the native resolution of
+the CCD.  Thus it is not possible to na\:vely render the
+above-the-atmosphere galaxy at native pixel scale and then convolve by
+the PSF.  Codes typically attempt to render the images at higher
+resolution than the CCD pixels and then bin down to the native CCD
+resolution; this significantly increases the computational cost, and
+may still not achieve exactly correct results.
+
+In \project{the Tractor}, we have previously taken the approach of
+using mixture-of-Gaussian approximations for \emph{both} the PSF and
+the model galaxy profiles.  The galaxy profile approximations are
+presented in \cite{moggalaxy}.  With the PSF and galaxy represented as
+mixtures of Gaussians, convolution is analytic and results in a larger
+mixture of Gaussians (the product of the two mixture sizes), which can
+then be directly evaluated.  This approach has the distinct limitation
+that the PSF must be approximated as a mixture of Gaussians; in
+practice, it takes many Gaussians to achieve a good approximation, and
+this makes the computation expensive.
+
+\section{The Trick}
+
+The trick builds directly upon our mixture-of-Gaussians approximation
+of galaxy profiles, with the realization that the Fourier transform of
+a Gaussian is also a Gaussian.  This allows us to evaluate the Fourier
+transform of a galaxy \emph{directly} in Fourier space, without ever
+having to render the unconvolved galaxy profile in pixel space (which
+is problematic due to undersampling).  We can then multiply this by
+the Fourier transform of the pixelized PSF model, then inverse Fourier
+transform back to pixel space to get the PSF-convolved galaxy profile.
+
+The method, then, is:
+\begin{enumerate}
+\item Choose the desired output image size and embed the pixelized PSF
+  model in a zero-padded image of this size.
+\item Compute the Fourier Transform of the padded PSF model via the
+  Fast Fourier Transform (FFT)
+  record the frequencies $\nu$ of the FFT terms.
+\item Transform the mixture-of-Gaussians approximation of the model
+  galaxy through an ellipticity matrix and the local image World
+  Coordinate System (WCS) matrix to get pixel-space Gaussians.
+\item Convert the galaxy Gaussians from pixel space to Fourier space.
+\item Evaluate the Fourier-space Gaussians on the frequency grid $\nu$.
+\item Multiply the PSF and galaxy Fourier transforms and inverse-FFT
+  back to pixel space.
+\end{enumerate}
+
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{@{}c@{}c@{}c@{}}
+      %
+      PSF & Galaxy & Result: PSF $\conv$ Galaxy \\
+      % psf img
+      \includegraphics[height=0.22\textwidth]{psf-09} &
+      % gal img*
+      \includegraphics[height=0.22\textwidth]{psf-13} &
+      % psf * gal img
+      \includegraphics[height=0.22\textwidth]{psf-14} \\
+      %
+      FFT(PSF) & FT(Galaxy) & FFT(PSF) * FT(Galaxy) \\
+      % psf FT
+      \multicolumn{1}{r}{%
+        \includegraphics[height=0.22\textwidth]{psf-10}} &
+      % gal FT
+      \multicolumn{1}{r}{%
+        \includegraphics[height=0.22\textwidth]{psf-11}} &
+      % psf * gal FT
+      \multicolumn{1}{r}{%
+        \includegraphics[height=0.22\textwidth]{psf-12}}
+      % gal img
+      %\includegraphics[height=0.22\textwidth]{psf-12} &
+    \end{tabular}
+  \end{center}
+  \caption{Illustration of the trick.
+    \textbf{Top-left}: pixelized PSF model.
+    %
+    \textbf{Bottom-left}: FFT of the pixelized PSF model.
+    % 
+    \textbf{Top-middle}: pixel-space galaxy profile (which would be
+    undersampled), with Gaussian ellipse approximations.  This is
+    never evaluated in our method, and is shown only for illustration.
+    % 
+    \textbf{Bottom-middle}: the Fourier-space representation of the
+    galaxy profile, evaluated directly in Fourier space.
+    %
+    \textbf{Bottom-right}: product of the FFT of the PSF and the
+    Fourier transform of the galaxy model.
+    %
+    \textbf{Top-right}: the result: the galaxy model convolved by the
+    PSF, in pixel space.  This is computed by inverse-FFT of the
+    bottom-right panel.
+  }
+\end{figure}
+
+Step 1, choosing the desired output image size, depends on the size of
+the PSF model as well as the galaxy.
+
+In Step 3, we transform the mixture-of-Gaussians approximation of the
+galaxy profiles from their representation in units of galaxy effective
+radius into pixel units.  This includes an ellipse transformation
+(scaling by effective radius, shearing by galaxy axis ratio, rotation
+by galaxy position angle), plus a transformation into pixel
+coordinates based on a locally-linear approximation of the image's
+World Coordinate System.  
+% We split the pixel position of the galaxy center into integer and
+% fractional parts.
+The result is a pixel-space mixture-of-Gaussians representation of the
+galaxy.
+
+Step 4 is essentially the core of the trick.  The Fourier transform of
+a Gaussian is another Gaussian; 
+
+
+\begin{thebibliography}
+
+\bibitem[Rowe \etal(2015)]{galsim}
+  Rowe,~B. \etal, 2015, Astronomy and
+  Computing, 10, 121; \arxiv{1407.7676}
+% GalSim: The modular galaxy image simulation toolkit
+
+\bibitem[Berg\'e \etal(2013)]{ufig}
+Berg\'e,~J. \etal, 2013, Astronomy and Computing, 1, 23;
+\arxiv{1209.1200}
+% An Ultra Fast Image Generator (UFig) for wide-field astronomy
+
+% PhoSim: a code to simulate telescopes one photon at a time
+%Peterson,~J.~R., 2014, Journal of Instrumentation, 9, C04010;
+%Simulation of Astronomical Images from Optical Survey Telescopes using a Comprehensive Photon Monte Carlo Approach
+\bibitem[Peterson \etal(2015)]{phosim}
+Peterson,~J.~R. \etal, 2015, 218, 14;
+\arxiv{1504.06570}
+
+% Detailed Structural Decomposition of Galaxy Images
+\bibitem[Peng \etal(2002)]{galfit}
+ Peng,~C.~Y. \etal, 2002, \aj, 124, 266;
+ \arxiv{0204182}
+
+\bibitem[Hogg \& Lang(2013)]{moggalaxy}
+Hogg,~D.~W. \and Lang,~D., 2013, \pasp, 125, 719;
+\arxiv{1210.6563}
+
+
+\end{thebibliography}
+
+
+\end{document}
