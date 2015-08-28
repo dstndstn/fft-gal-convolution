@@ -182,24 +182,24 @@ of galaxy profiles can be converted into a mixture of Gaussians in
 Fourier space.
 %
 A single 2-dimensional Gaussian 
-centered on the origin
-%defined by a centroid
-%$\bm{\mu} = (x_0, y_0)^T$
-and with covariance $C = \bigl(\begin{smallmatrix}
-a&b \\ b&d
-\end{smallmatrix} \bigr)$
+defined by a centroid
+$\bm{\mu}$
+and covariance $C$
 in pixel space is defined by
 %\[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
 %\exp\left( -\frac{1}{2} (\bm{x} - \bm{\mu})^T C^{-1} (\bm{x} - \bm{\mu}) \right)
 %\]
 \[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
-\exp\left( -\frac{1}{2} \bm{x}^T C^{-1} \bm{x} \right)
+\exp\left( -\frac{1}{2} (\bm{x}-\bm{\mu})^T C^{-1} (\bm{x}-\bm{\mu}) \right)
 \]
-which becomes, writing out the vector $\bm{x}$ as $(x,y)$,
+which becomes, writing out the vector $\bm{x}$ as $(x,y)^T$, $\bm{\mu} = (x_0, y_0)^T$,
+and covariance $C = \bigl(\begin{smallmatrix}
+a&b \\ b&d
+\end{smallmatrix} \bigr)$,
 \[ g(x, y) = \frac{1}{2 \pi \sqrt{a d - b^2}}
 \exp \left(
-%-\frac{d (x-x_0)^2 - 2 b (x-x_0) (y-y_0) + a (y-y_0)^2}{2(a d - b^2)}
--\frac{d x^2 - 2 b x y + a y^2}{2(a d - b^2)}
+-\frac{d (x-x_0)^2 - 2 b (x-x_0) (y-y_0) + a (y-y_0)^2}{2(a d - b^2)}
+%-\frac{d x^2 - 2 b x y + a y^2}{2(a d - b^2)}
 \right) \quad .
 \]
 The Fourier Transform of $g(x,y)$ is defined as
