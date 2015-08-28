@@ -204,7 +204,8 @@ G(v,w) =
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
 g(x - x_0, y - y_0) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
-\] \quad .
+\quad .
+\] 
 We use the shift theorem to move the centroid to $\mu = (x_0, y_0)$
 in pixel space via a phase term in Fourier space;
 \[
@@ -213,13 +214,18 @@ e^{-2 \pi i (x_0 v + y_0 w)}
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
 g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
-\] \quad .
+\] 
 %
-This works out to
+which works out to
 \[ G(v,w) = 
 e^{-2 \pi i (x_0 v + y_0 w)}
-e^{-2 pi^2 (a v^2 + 2 b v w + d w^2)}
+e^{-2 \pi^2 (a v^2 + 2 b v w + d w^2)}
 \]
+which can easily be evaluated on a grid of frequencies $(v, w)$.
+
+
+%%% Example of pushing our galaxy MOGs through a WCS, etc?
+
 
 Then, in Step 5, we directly evaluate these Gaussians in Fourier
 space, on the same frequency grid used for the FFT of the PSF.  This
