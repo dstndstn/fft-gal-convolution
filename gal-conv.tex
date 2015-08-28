@@ -177,10 +177,47 @@ The result is a pixel-space mixture-of-Gaussians representation of the
 galaxy.
 
 Step 4 is essentially the core of the trick.  The Fourier transform of
-a Gaussian is another Gaussian; our mixture-of-Gaussian represenation
+a Gaussian is another Gaussian; our mixture-of-Gaussian representation
 of galaxy profiles can be converted into a mixture of Gaussians in
-Fourier space:
-\[ MATH \]
+Fourier space.
+%
+A single 2-dimensional Gaussian 
+centered on the origin
+%defined by a centroid
+%$\bm{\mu} = (x_0, y_0)^T$
+and with covariance $C = \bigl(\begin{smallmatrix}
+a&b \\ b&d
+\end{smallmatrix} \bigr)$
+in pixel space is defined by
+%\[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
+%\exp\left( -\frac{1}{2} (\bm{x} - \bm{\mu})^T C^{-1} (\bm{x} - \bm{\mu}) \right)
+%\]
+\[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
+\exp\left( -\frac{1}{2} \bm{x}^T C^{-1} \bm{x} \right)
+\]
+which becomes, writing out the vector $\bm{x}$ as $(x,y)$,
+\[ g(x, y) = \frac{1}{2 \pi \sqrt{a d - b^2}}
+\exp \left(
+%-\frac{d (x-x_0)^2 - 2 b (x-x_0) (y-y_0) + a (y-y_0)^2}{2(a d - b^2)}
+-\frac{d x^2 - 2 b x y + a y^2}{2(a d - b^2)}
+\right) \quad .
+\]
+The Fourier Transform of $g(x,y)$ is defined as
+\[
+G(v,w) = 
+\int\limits_{-\infty}^{\infty}
+\int\limits_{-\infty}^{\infty}
+g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
+\] \quad .
+We use the shift theorem to move the centroid to $\mu = (x_0, y_0)$
+via a phase term;
+\[
+G(v, w) =
+e^{-2 \pi i (x_0 v + y_0 w)}
+\int\limits_{-\infty}^{\infty}
+\int\limits_{-\infty}^{\infty}
+g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
+\] \quad .
 
 
 Then, in Step 5, we directly evaluate these Gaussians in Fourier
@@ -208,7 +245,7 @@ Figure \ref{fig:example} illustrates this process.
 
 --implemented in The Tractor
 
---speed & accuracy example vs GMM
+--speed \& accuracy example vs GMM
 
 --efficiency with PsfEx-style eigen-PSF models
 
