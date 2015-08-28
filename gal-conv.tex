@@ -181,36 +181,32 @@ a Gaussian is another Gaussian; our mixture-of-Gaussian representation
 of galaxy profiles can be converted into a mixture of Gaussians in
 Fourier space.
 %
-A single 2-dimensional Gaussian 
-defined by a centroid
-$\bm{\mu}$
-and covariance $C$
+A single 2-dimensional Gaussian
+centered at the origin and
+with covariance $C$
 in pixel space is defined by
-%\[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
-%\exp\left( -\frac{1}{2} (\bm{x} - \bm{\mu})^T C^{-1} (\bm{x} - \bm{\mu}) \right)
-%\]
 \[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
-\exp\left( -\frac{1}{2} (\bm{x}-\bm{\mu})^T C^{-1} (\bm{x}-\bm{\mu}) \right)
+\exp\left( -\frac{1}{2} \bm{x}^T C^{-1} \bm{x} \right)
 \]
-which becomes, writing out the vector $\bm{x}$ as $(x,y)^T$, $\bm{\mu} = (x_0, y_0)^T$,
+which becomes, writing out the vector $\bm{x}$ as $(x,y)^T$
 and covariance $C = \bigl(\begin{smallmatrix}
 a&b \\ b&d
 \end{smallmatrix} \bigr)$,
 \[ g(x, y) = \frac{1}{2 \pi \sqrt{a d - b^2}}
 \exp \left(
--\frac{d (x-x_0)^2 - 2 b (x-x_0) (y-y_0) + a (y-y_0)^2}{2(a d - b^2)}
-%-\frac{d x^2 - 2 b x y + a y^2}{2(a d - b^2)}
+-\frac{d x^2 - 2 b x y + a y^2}{2(a d - b^2)}
 \right) \quad .
 \]
-The Fourier Transform of $g(x,y)$ is defined as
+%
+The Fourier Transform of the shifted Gaussian $g(x - x_0, y - y_0)$ is defined as
 \[
 G(v,w) = 
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
-g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
+g(x - x_0, y - y_0) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
 \] \quad .
 We use the shift theorem to move the centroid to $\mu = (x_0, y_0)$
-via a phase term;
+in pixel space via a phase term in Fourier space;
 \[
 G(v, w) =
 e^{-2 \pi i (x_0 v + y_0 w)}
@@ -218,7 +214,12 @@ e^{-2 \pi i (x_0 v + y_0 w)}
 \int\limits_{-\infty}^{\infty}
 g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
 \] \quad .
-
+%
+This works out to
+\[ G(v,w) = 
+e^{-2 \pi i (x_0 v + y_0 w)}
+e^{-2 pi^2 (a v^2 + 2 b v w + d w^2)}
+\]
 
 Then, in Step 5, we directly evaluate these Gaussians in Fourier
 space, on the same frequency grid used for the FFT of the PSF.  This
