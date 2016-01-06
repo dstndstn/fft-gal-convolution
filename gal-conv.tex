@@ -179,7 +179,9 @@ The method, then, is:
     Illustration of the \trick.
     \textbf{Top-left}: pixelized PSF model.
     %
-    \textbf{Bottom-left}: FFT of the pixelized PSF model.
+    \textbf{Bottom-left}: FFT of the pixelized PSF model.  Since the PSF model is
+    purely real, we show only half the symmetric Fourier transform; the FFT is
+    complex; we show here the absolute value.
     % 
     \textbf{Top-middle}: pixel-space galaxy profile (which would be
     undersampled), with Gaussian ellipse approximations.  This is
@@ -207,7 +209,7 @@ radius into pixel units.  This includes an ellipse transformation
 (scaling by effective radius, shearing by galaxy axis ratio, rotation
 by galaxy position angle), plus a transformation into pixel
 coordinates based on a locally-linear approximation of the image's
-World Coordinate System.  
+World Coordinate System.
 % We split the pixel position of the galaxy center into integer and
 % fractional parts.
 The result is a pixel-space mixture-of-Gaussians representation of the
@@ -222,43 +224,68 @@ A single 2-dimensional Gaussian
 centered at the origin and
 with covariance $C$
 in pixel space is defined by
-\[ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}} 
+\begin{equation}
+g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}}
 \exp\left( -\frac{1}{2} \bm{x}^T C^{-1} \bm{x} \right)
-\]
+\end{equation}
 which becomes, writing out the vector $\bm{x}$ as $(x,y)^T$
 and covariance $C = \bigl(\begin{smallmatrix}
 a&b \\ b&d
 \end{smallmatrix} \bigr)$,
-\[ g(x, y) = \frac{1}{2 \pi \sqrt{a d - b^2}}
+\begin{equation}
+g(x, y) = \frac{1}{2 \pi \sqrt{a d - b^2}}
 \exp \left(
 -\frac{d x^2 - 2 b x y + a y^2}{2(a d - b^2)}
 \right) \quad .
-\]
+\end{equation}
 %
 The Fourier Transform of the shifted Gaussian $g(x - x_0, y - y_0)$ is defined as
-\[
-G(v,w) = 
+\begin{equation}
+G(v,w) =
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
 g(x - x_0, y - y_0) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
 \quad .
-\] 
+\end{equation}
 We use the shift theorem to move the centroid to $\mu = (x_0, y_0)$
 in pixel space via a phase term in Fourier space;
-\[
+\begin{equation}
 G(v, w) =
 e^{-2 \pi i (x_0 v + y_0 w)}
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
 g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
-\] 
+\end{equation}
 %
 which, plugging in the covariance matrix $C$, works out to
-\[ G(v,w) = 
+\begin{equation}
+G(v,w) =
 e^{-2 \pi i (x_0 v + y_0 w)}
 e^{-2 \pi^2 (a v^2 + 2 b v w + d w^2)}
-\]
+\end{equation}
 which can easily be evaluated on a grid of frequencies $(v, w)$.
+
+For a mixture of Gaussians, we must evaluate $G$ for each component in
+the mixture and compute their weighted sum.  In the case of a
+mixture-of-Gaussians representation of affine-transformed galaxy
+profiles, the centers $(x_0, y_0)$ are the same for each component in
+the mixture; only the covariances,
+$C_i = \bigl(\begin{smallmatrix}
+a_i&b_i \\ b_i&d_i
+\end{smallmatrix} \bigr)$,
+differ.  The Fourier transform
+of a mixture of Gaussians,
+\begin{equation}
+m(x,y) = \sum_i A_i \, g_i(x, y)
+\end{equation}
+is therefore
+\begin{equation}
+M(v, w) = e^{-2 \pi i (x_0 v + y_0 w)}
+\sum_i A_i \,
+e^{-2 \pi^2 (a_i v^2 + 2 b_i v w + d_i w^2)}
+\quad .
+\end{equation}
+
 
 
 %%% Example of pushing our galaxy MOGs through a WCS, etc?

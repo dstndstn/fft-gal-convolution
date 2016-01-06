@@ -177,9 +177,11 @@ def fft_plots(psfex, W, H, ps):
     pixpsf = PixelizedPSF(psfim)#.patch)
     halfsize = 10.
     P,(px0,py0),(pH,pW),(w,v) = pixpsf.getFourierTransform(0., 0., halfsize)
-    #w = np.fft.rfftfreq(pW)
-    #v = np.fft.fftfreq(pH)
 
+    print 'PSF size:', psfim.shape
+    print 'Padded PSF size:', pH,pW
+    print 'FFT size:', P.shape, P.dtype
+    
     data=np.zeros((H,W), np.float32)
     tinypsf = NCircularGaussianPSF([1e-6], [1.])
     img = Image(data=data, invvar=np.ones_like(data), psf=tinypsf)
