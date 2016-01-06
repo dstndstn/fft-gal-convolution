@@ -152,11 +152,19 @@ The method, then, is:
       %
       PSF && \gray{Galaxy} && Result: PSF $\conv$ Galaxy \\
       % psf img
-      \includegraphics[height=0.22\textwidth]{psf-00} &&
+      \multicolumn{1}{r}{%
+        \includegraphics[height=0.22\textwidth]{psf-00}%
+      }
+      &&
       % gal img*
-      \includegraphics[height=0.22\textwidth]{psf-04} &&
+      \multicolumn{1}{r}{%
+        \includegraphics[height=0.22\textwidth]{psf-04}%
+      }
+      &&
       % psf * gal img
-      \includegraphics[height=0.22\textwidth]{psf-05} \\
+      \multicolumn{1}{r}{%
+        \includegraphics[height=0.22\textwidth]{psf-05}%
+      } \\
       %
       \rule[-1em]{0pt}{1.5em}
       $\arrowspacer{\downarrow \mathcal{F}}$ && && $\arrowspacer{\uparrow \mathcal{F}^{-1}}$ \\
@@ -164,10 +172,14 @@ The method, then, is:
       FFT(PSF) & $\times$ & FT(Galaxy) & $=$ & FFT(PSF $\conv$ Galaxy) \\
       % psf FT
       \multicolumn{1}{r}{%
-        \includegraphics[height=0.22\textwidth]{psf-01}} &&
+        \includegraphics[height=0.22\textwidth]{psf-01}} &
+      %$\times$
+      &
       % gal FT
       \multicolumn{1}{r}{%
-        \includegraphics[height=0.22\textwidth]{psf-02}} &&
+        \includegraphics[height=0.22\textwidth]{psf-02}} &
+      %$=$
+      &
       % psf * gal FT
       \multicolumn{1}{r}{%
         \includegraphics[height=0.22\textwidth]{psf-03}}

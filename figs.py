@@ -219,14 +219,14 @@ def fft_plots(psfex, W, H, ps):
     dimshow(np.fft.fftshift(np.hypot(FG.real, FG.imag), axes=(0,)), **fima)
     ps.savefig()
     
-    plt.figure(1)
-    
     tinyp = gal.getModelPatch(img)
     print 'tiny PSF conv galaxy'
     mod = np.zeros_like(psfim)
     tinyp.addTo(mod)
     
-    # unconvolved galaxy
+    plt.figure(1)
+    
+    # unconvolved galaxy image
     plt.clf()
     dimshow(mod, **ima)
     
@@ -252,7 +252,7 @@ def fft_plots(psfex, W, H, ps):
     mod = np.zeros_like(psfim)
     p.addTo(mod)
 
-    # Convolved galaxy
+    # Convolved galaxy image
     plt.clf()
     dimshow(mod, **ima)
     ps.savefig()
@@ -266,11 +266,17 @@ psfex = PsfEx(psffn, W, H)
 ps = PlotSequence('psf', suffixes=['pdf'])
 
 plt.figure(1, figsize=(3,3))
-plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.99,
-                    hspace=0, wspace=0)
-plt.figure(2, figsize=(1.5,3))
-plt.subplots_adjust(left=0.005, right=0.995, bottom=0.01, top=0.99,
-                    hspace=0, wspace=0)
+margin = 0.01
+#plt.subplots_adjust(left=margin, right=1.-margin, bottom=margin, top=1.-margin,
+#                    hspace=0, wspace=0)
+plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+#plt.figure(2, figsize=(1.5,3))
+frac = 17./32
+plt.figure(2, figsize=(frac * 3,3))
+# plt.subplots_adjust(left=margin/frac, right=1 - margin/frac,
+#                     bottom=margin, top=1.-margin,
+#                     hspace=0, wspace=0)
+plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
 
 plt.figure(1)
 
