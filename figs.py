@@ -168,10 +168,14 @@ def fft_plots(psfex, W, H, ps):
     cx,cy = pw/2, ph/2
     egal = EllipseE.fromRAbPhi(3., 0.3, 135.)
     gal = ExpGalaxy(PixPos(cx,cy), Flux(100.), egal)
+
+    ima = dict(ticks=False, cmap=antigray)
+    #fima = dict(ticks=False, cmap='hot_r')
+    fima = dict(ticks=False, cmap='Blues')
     
     # PSF img
     plt.clf()
-    dimshow(psfim, vmin=0, vmax=mx, ticks=False)
+    dimshow(psfim, vmin=0, vmax=mx, **ima)
     ps.savefig()
     
     pixpsf = PixelizedPSF(psfim)#.patch)
@@ -192,11 +196,9 @@ def fft_plots(psfex, W, H, ps):
     Fsum = amix.getFourierTransform(w, v)
     
     print 'PSF FT'
-    print 'P', P.shape, P.dtype
     plt.figure(2)
     plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(P.real, P.imag), axes=(0,)), ticks=False,
-            cmap='hot')
+    dimshow(np.fft.fftshift(np.hypot(P.real, P.imag), axes=(0,)), **fima)
     ps.savefig()
     
     # plt.clf()
@@ -208,15 +210,13 @@ def fft_plots(psfex, W, H, ps):
     
     print 'Gal FT'
     plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
-            ticks=False, cmap='hot')
+    dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)), **fima)
     ps.savefig()
     
     print 'PSF * Gal FT'
     plt.clf()
     FG = Fsum * P
-    dimshow(np.fft.fftshift(np.hypot(FG.real, FG.imag), axes=(0,)),
-            ticks=False, cmap='hot')
+    dimshow(np.fft.fftshift(np.hypot(FG.real, FG.imag), axes=(0,)), **fima)
     ps.savefig()
     
     plt.figure(1)
@@ -226,9 +226,9 @@ def fft_plots(psfex, W, H, ps):
     mod = np.zeros_like(psfim)
     tinyp.addTo(mod)
     
+    # unconvolved galaxy
     plt.clf()
-    #dimshow(tinyp.patch)
-    dimshow(mod)
+    dimshow(mod, **ima)
     
     ax = plt.axis()
     for v in amix.var:
@@ -244,18 +244,17 @@ def fft_plots(psfex, W, H, ps):
         yy = B[1,0] * cc + B[1,1] * ss
         plt.plot(cx + xx, cy + yy, 'r-', lw=2)
     plt.axis(ax)
-    
     ps.savefig()
-    
     
     img.psf = pixpsf
     p = gal.getModelPatch(img)
     print 'PixPSF conv galaxy'
     mod = np.zeros_like(psfim)
     p.addTo(mod)
+
+    # Convolved galaxy
     plt.clf()
-    #dimshow(p.patch)
-    dimshow(mod)
+    dimshow(mod, **ima)
     ps.savefig()
 
         
