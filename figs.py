@@ -157,7 +157,7 @@ def gmm_plots(psfex, W, H, ps):
 
 ##############################################
 
-def fft_plots(psfex, W, H, ps):
+def fft_plots(psfex, W, H, ps, ps2):
     
     psfim = psfex.instantiateAt(W, H)
     mx = psfim.max()
@@ -257,6 +257,45 @@ def fft_plots(psfex, W, H, ps):
     dimshow(mod, **ima)
     ps.savefig()
 
+
+
+    w,h = 32,32
+
+    egal = EllipseE.fromRAbPhi(20., 0.1, 115.)
+    gal = ExpGalaxy(PixPos(0.,0.), Flux(100.), egal)
+
+
+    cx,cy = w, h/2
+    gal.pos = PixPos(cx, cy)
+
+    p = gal.getModelPatch(img)
+    mod = np.zeros((h,w*2))
+    p.addTo(mod)
+
+    #halfsize = gal._getUnitFluxPatchSize(img, cx, cy, 0.)
+    #print 'halfsize:', halfsize
+    # -> 256 x 256 FFT
+    
+    # Not-wrapped-around galaxy image
+    plt.figure(3)
+    plt.clf()
+    dimshow(mod, **ima)
+    ps2.savefig()
+
+
+    cx,cy = w/2, h/2
+    gal.pos = PixPos(cx, cy)
+
+    p = gal.getModelPatch(img, modelMask=Patch(0,0,np.ones((h,w),bool)))
+    mod = np.zeros((h,w))
+    p.addTo(mod)
+    
+    # Wrapped-around galaxy image
+    plt.figure(1)
+    plt.clf()
+    dimshow(mod, **ima)
+    ps2.savefig()
+
         
 psffn = 'decam-00348226-N18.fits'
 
@@ -264,6 +303,8 @@ W,H = 2048,4096
 psfex = PsfEx(psffn, W, H)
 
 ps = PlotSequence('psf', suffixes=['pdf'])
+ps2 = PlotSequence('gal', suffixes=['pdf'])
+
 
 plt.figure(1, figsize=(3,3))
 margin = 0.01
@@ -278,9 +319,13 @@ plt.figure(2, figsize=(frac * 3,3))
 #                     hspace=0, wspace=0)
 plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
 
+plt.figure(3, figsize=(6,3))
+plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+
+
 plt.figure(1)
 
-fft_plots(psfex, W, H, ps)
+fft_plots(psfex, W, H, ps, ps2)
 
     
 # plt.clf()

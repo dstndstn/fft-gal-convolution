@@ -2,15 +2,12 @@
 % All rights reserved.
 
 % TO-DO:
-% - Journal reference for Peterson
 % - think carefully about ``convolution'' vs ``correlation''
 
 % - provide exp and deV GMM parameters in an appendix?
 
 % - provide the model space to pixel space (ellipse and WCS
 %   transformation) equations?
-
-% - discuss wrap-around and required pixel stamp size
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -60,7 +57,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   Waterloo, ON, N2L 3G1, Canada}
 \altaffiltext{3}%
 {dstndstn@gmail.com}
-\date{}
+\date{DRAFT \today}
 \shorttitle{Fast Galaxy--PSF Convolution}
 \shortauthors{Lang}
 
@@ -189,7 +186,7 @@ The method, then, is:
   \end{center}
   \caption{\label{fig:example}%
     Illustration of the \trick.
-    \textbf{Top-left}: pixelized PSF model (zoom in of central region).
+    \textbf{Top-left}: pixelized PSF model (zoom-in of central region).
     %
     \textbf{Bottom-left}: FFT of the pixelized PSF model.  Since the PSF model is
     purely real, we show only half the symmetric Fourier transform; the FFT is
@@ -210,6 +207,8 @@ The method, then, is:
     bottom-right panel.
   }
 \end{figure}
+
+
 
 Step 1, choosing the desired output image size, depends on the size of
 the PSF model as well as the galaxy.  If the chosen size is too small,
@@ -311,7 +310,7 @@ sampled, thus has zero power outside the frequency grid of the FFT.
 The galaxy profile may have power outside that frequency range; this
 is the reason that one cannot simply render the galaxy profile ``above
 the atmosphere'' at the native image pixel scale and apply FFT
-convolution na\"ively; In the limit, a point-like galaxy has power at
+convolution na\"ively: In the limit, a point-like galaxy has power at
 all frequencies.  But when we multiply the PSF and galaxy profile in
 Fourier space, all that high-frequency power will be zeroed out by the
 assumption of well-sampled PSF model.  Effectively, by evaluating the
@@ -329,18 +328,59 @@ Figure \ref{fig:example} illustrates this process.
 
 \section{Discussion}
 
---implemented in The Tractor
+Our \trick\ is implemented in \project{the Tractor} code and has been
+used at scale in the data reduction of the Dark Energy Camera Legacy
+Survey Data Release 2 (Schlegel, Dey \etal, in prep.).  In our tests, we
+have found the speed to be comparable to that of a 3-component
+mixture-of-Gaussians representation of the PSF.  The majority of the
+computational cost is in evaluating the \emph{exp} function rather
+than in the FFT or inverse-FFT, so fast \emph{exp} approximations\footnote{%
+For example, \niceurl{https://github.com/herumi/fmath} as used in
+\project{ngmix}, \niceurl{https://github.com/esheldon/ngmix}.}
+should provide significant speedups.
 
---speed \& accuracy example vs GMM
+%http://homepage1.nifty.com/herumi/soft/fmath.html
 
---efficiency with PsfEx-style eigen-PSF models
+Some PSF modelling tools, including \project{PsfEx} \citep{psfex},
+produce \emph{eigen-PSF} models.  That is, the PSF model varies
+spatially across the image, and the variation is represented as
+polynomial variations in the amplitudes of a set of PSF components.
+This is convenient when used with our \trick, since the FFT of each
+PSF component can be computed once in preprocessing and the FFT at a
+given position in the image can be computed by weighting the component
+FFTs using the PSF model's polynomial spatial variation terms.
 
---choosing patch size...
+\begin{figure}
+\begin{center}
+\begin{tabular}{@{}cc@{}}
+  $256 \times 256$-pixel FFT &
+  $32 \times 32$-pixel FFT \\
+  %
+  \includegraphics[height=0.22\textwidth]{gal-00} &
+  \includegraphics[height=0.22\textwidth]{gal-01} \\
+\end{tabular}
+\end{center}
+\caption{\label{fig:wrap}%
+  Wrap-around of the PSF-convolved galaxy profile can occur if the FFT is
+  computed on a pixel grid too small to contain the galaxy.
+  %
+  \textbf{Left:} Result (cropped) using a 256-pixel square grid.
+  %
+  \textbf{Right:} Result using a 32-pixel square grid shows wrap-around
+  aliasing.
+}
+\end{figure}
+
+When using this \trick, one must choose the image patch size in which
+to embed the PSF; the resulting convolved image will be the same size.
+The image size chosen must be large enough to contain the convolved
+galaxy, or wrap-around effects will be seen: The Fourier transform is
+periodic, so any part of the convolved galaxy profile that lies
+outside the image will alias into the image.  This is
+illustrated in Figure \ref{fig:wrap}.
 
 
-\section{Conclusion}
-
-
+% \acks
 
 
 
@@ -350,6 +390,11 @@ Figure \ref{fig:example} illustrates this process.
 Berg\'e,~J. \etal, 2013, Astronomy and Computing, 1, 23;
 \arxiv{1209.1200}
 % An Ultra Fast Image Generator (UFig) for wide-field astronomy
+
+
+\bibitem[Bertin (2011)]{psfex}
+Bertin, E., 2011, ADASS XX, ASP Conference Series, 442, 435
+%Evans, I.~N., Accomazzi, A., Mink, D.~J. and Rots, A.~H., eds.
 
 \bibitem[Hogg \& Lang(2013)]{moggalaxy}
 Hogg,~D.~W. \& Lang,~D., 2013, \pasp, 125, 719;
