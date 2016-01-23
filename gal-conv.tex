@@ -9,6 +9,8 @@
 % - provide the model space to pixel space (ellipse and WCS
 %   transformation) equations?
 
+% Calabretta & Greisen arxiv number?
+
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
 \usepackage{bm}
@@ -26,11 +28,15 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \newcommand{\ie}{\foreign{i.e.}}
 \newcommand{\figref}[1]{\figurename~\ref{#1}}
 \newcommand{\Figref}[1]{\figref{#1}}
+\newcommand{\appref}[1]{Appendix \ref{#1}}
+\newcommand{\eqnref}[1]{Equation \ref{#1}}
 \newcommand{\niceurl}[1]{\href{#1}{\textsl{#1}}}
 \newcommand{\project}[1]{\textsl{#1}}
 \newcommand{\conv}{\otimes}
 \newcommand{\trick}{method}
 \newcommand{\Trick}{Method}
+
+\newcommand{\CD}{C\!D}
 
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \newcommand{\gray}[1]{\textcolor{gray}{#1}}
@@ -43,13 +49,10 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 
 \title{A \trick\ for fast galaxy--PSF convolution}
 \author{Dustin~Lang\altaffilmark{1,2,3}}
-%\email{dstndstn@gmail.com}
-%\affil%
 \altaffiltext{1}%
 {Department of Astronomy \& Astrophysics and Dunlap Institute,
   University of Toronto,
   50 Saint George Street, Toronto, ON, M5S 3H4, Canada}
-%\\ and
 \altaffiltext{2}%
 {Department of Physics \& Astronomy,
   University of Waterloo,
@@ -97,10 +100,11 @@ model galaxy profiles such as the deVaucouleurs profile are very
 undersampled by the native resolution of the CCD.  Thus it is not
 possible to render na\"ively the above-the-atmosphere galaxy at native
 pixel scale and then convolve by the PSF (also represented at native
-pixel scale).  Codes typically attempt to render the images at higher
-resolution than the CCD pixels and then bin down to the native CCD
-resolution; this significantly increases the computational cost, and
-may still not achieve exactly correct results.
+pixel scale), because undersampling will lead to aliasing.  Codes
+typically attempt to render the images at higher resolution than the
+CCD pixels and then bin down to the native CCD resolution; this
+significantly increases the computational cost, and may still not
+achieve exactly correct results.
 
 In \project{the Tractor}, we have previously taken the approach of
 using mixture-of-Gaussian approximations for \emph{both} the PSF and
@@ -112,35 +116,6 @@ then be directly evaluated.  This approach has the distinct limitation
 that the PSF must be approximated as a mixture of Gaussians; in
 practice, it takes many Gaussians to achieve a good approximation, and
 this makes the computation expensive.
-
-\section{The \Trick}
-
-The \trick\ builds directly upon our mixture-of-Gaussians
-approximation of galaxy profiles, with the realization that the
-Fourier transform of a Gaussian is also a Gaussian.  This allows us to
-evaluate the Fourier transform of a galaxy \emph{directly} in Fourier
-space, without ever having to render the ``above the atmosphere''
-(unconvolved) galaxy profile in pixel space (which is problematic due
-to undersampling).  We can then multiply this Fourier-space
-representation of the galaxy by the Fourier transform of the pixelized
-PSF model, then inverse Fourier transform back to pixel space to get
-the PSF-convolved galaxy profile.
-
-The method, then, is:
-\begin{enumerate}
-\item Choose the desired output image size and embed the pixelized PSF
-  model in a zero-padded image of this size.
-\item Compute the Fourier Transform of the padded PSF model via the
-  Fast Fourier Transform (FFT),
-  recording the frequencies $(v, w)$ of the FFT terms.
-\item Transform the mixture-of-Gaussians approximation of the model
-  galaxy through an ellipticity matrix and the local image World
-  Coordinate System (WCS) matrix to get pixel-space Gaussians.
-\item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space.
-\item Evaluate the Fourier-space Gaussians on the frequency grid $(v, w)$.
-\item Multiply the PSF and galaxy Fourier transforms and inverse-FFT
-  back to pixel space.
-\end{enumerate}
 
 \begin{figure}
   \newcommand{\arrowspacer}[1]{\left#1 \textrm{\rule[-0.5em]{0pt}{1em}} \right.}
@@ -208,6 +183,37 @@ The method, then, is:
   }
 \end{figure}
 
+\section{The \Trick}
+
+The \trick\ presented here builds directly upon our mixture-of-Gaussians
+approximation of galaxy profiles, with the realization that the
+Fourier transform of a Gaussian is also a Gaussian.  This allows us to
+evaluate the Fourier transform of a model galaxy profile \emph{directly} in Fourier
+space, without ever having to render the ``above the atmosphere''
+(unconvolved) galaxy profile in pixel space.
+% (which is problematic due to undersampling).
+We can then multiply this Fourier-space
+representation of the galaxy by the Fourier transform of the pixelized
+PSF model, then inverse Fourier transform back to pixel space to get
+the PSF-convolved galaxy profile.
+
+The method, then, is:
+\begin{enumerate}
+\item Choose the desired output image size and embed the pixelized PSF
+  model in a zero-padded image of this size.
+\item Compute the Fourier Transform of the padded PSF model via the
+  Fast Fourier Transform (FFT),
+  recording the frequencies $(v, w)$ of the FFT terms.
+\item Transform the mixture-of-Gaussians approximation of the model
+  galaxy through an ellipticity matrix and the local image World
+  Coordinate System (WCS) matrix to get pixel-space Gaussians.
+\item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space.
+\item Evaluate the Fourier-space Gaussians on the frequency grid $(v, w)$.
+\item Multiply the PSF and galaxy Fourier transforms and inverse-FFT
+  back to pixel space.
+\end{enumerate}
+
+
 
 
 Step 1, choosing the desired output image size, depends on the size of
@@ -225,6 +231,51 @@ World Coordinate System.
 % fractional parts.
 The result is a pixel-space mixture-of-Gaussians representation of the
 galaxy.
+
+Specifically, in \project{the Tractor}, we represent the shape of a
+galaxy by the effective radius $r_e$ and two ellipticity components
+$e_1$ and $e_2$ as are typically used in weak lensing.  We can
+represent this as a matrix that transforms from celestial coordinates
+into units of effective radius (the coordinates in which the galaxy
+profiles are written).  This is most easily done by computing the
+position angle $\theta$ and axis ratio $a$,
+\begin{align}
+%
+\theta & = \frac{1}{2} \arctan\!2(e_2, e_1) \\
+%
+e & = \sqrt{e_1^2 + e_2^2} \\
+%
+a & = \frac{1 - e}{1 + e}
+\end{align}
+leading to the transformation matrix
+\begin{align}
+E &= r_e \begin{bmatrix}
+\textcolor{white}{-}a \cos{\theta} & \sin{\theta} \\
+-a \sin{\theta} & \cos{\theta} \\
+\end{bmatrix} \quad .
+\end{align}
+If we represent the local astrometric world coordinate system by an
+affine transformation that takes celestial coordinates to pixel
+coordinates, then we can multiply the two transformation matrices to
+convert from pixels to galaxy profile coordinates.  The FITS WCS
+standard\cite{wcs2} defines a transformation matrix $\CD$ that takes
+pixels to intermediate world coordinates.  The combined transformation
+matrix $T$ is then
+\begin{align}
+T & = (\CD)^{-1} E
+\end{align}
+so that a covariance matrix in galaxy effective radius coordinates can
+be transformed into pixel space by computing
+\begin{align}
+V_{\textrm{pix}} &= T \, V \, T^T
+\label{eq:vpix}
+\quad .
+\end{align}
+When we write out this matrix in full, we find that the $\cos{\theta}$
+and $\sin{\theta}$ terms always appear in pairs, so we can avoid
+computing these trigonometric functions explicitly in the above.  See
+\appref{app:transform}.
+
 
 Step 4 is the core of the \trick.  The Fourier transform of
 a Gaussian is another Gaussian; our mixture-of-Gaussian representation
@@ -382,6 +433,33 @@ illustrated in Figure \ref{fig:wrap}.
 
 % \acks
 
+\appendix
+
+\section{Galaxy variances in pixel space}
+\label{app:transform}
+
+Writing out the matrix multiplication in \eqnref{eq:vpix}, we get
+\begin{align}
+V_{\textrm{pix}} = \begin{bmatrix}
+V_{1,1} & V_{1,2} \\
+V_{2,1} & V_{2,2}
+\end{bmatrix}
+\end{align}
+where the matrix is symmetric so that $V_{1,2} = V_{2,1}$ and the terms are
+\begin{align}
+V_{1,1} & =
+%
+a^2(w^2 c^2 + 2 u w c s + u^2 s^2) + w^2 s^2 - 2 u w c s + u^2 c^2
+\\
+V_{1,2} & =
+%
+-a^2 (v w c^2 + u v c s + t w c s + t u s^2) - v w s^2 + u v c s + t w c s - t u c^2
+\\
+V_{2,2} & =
+%
+a^2 (v^2 c^2 + 2 t v c s + t^2 s^2) + t^2 c^2 - 2 t v c s + v^2 s^2
+\end{align}
+
 
 
 \begin{thebibliography}
@@ -395,6 +473,9 @@ Berg\'e,~J. \etal, 2013, Astronomy and Computing, 1, 23;
 \bibitem[Bertin (2011)]{psfex}
 Bertin, E., 2011, ADASS XX, ASP Conference Series, 442, 435
 %Evans, I.~N., Accomazzi, A., Mink, D.~J. and Rots, A.~H., eds.
+
+\bibitem[Calabretta \& Greisen(2002)]{wcs2}
+Calabretta,~M.~R. \& Greisen,~E.~W., 2002, \aa, 395, 1077
 
 \bibitem[Hogg \& Lang(2013)]{moggalaxy}
 Hogg,~D.~W. \& Lang,~D., 2013, \pasp, 125, 719;
