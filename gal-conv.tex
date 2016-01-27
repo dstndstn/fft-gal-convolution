@@ -4,12 +4,9 @@
 % TO-DO:
 % - think carefully about ``convolution'' vs ``correlation''
 
-% - provide exp and deV GMM parameters in an appendix?
+% - check for best Lupton-deV and Lupton-exp mixture components
 
-% - provide the model space to pixel space (ellipse and WCS
-%   transformation) equations?
-
-% Calabretta & Greisen arxiv number?
+% - Calabretta & Greisen arxiv number?
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -17,6 +14,8 @@
 \usepackage{hyperref}
 \usepackage{multirow}
 \usepackage{color}
+\usepackage{array}
+\usepackage{dcolumn}
 
 \hypersetup{pdftitle={},
 pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
@@ -245,7 +244,7 @@ position angle $\theta$ and axis ratio $a$,
 %
 e & = \sqrt{e_1^2 + e_2^2} \\
 %
-a & = \frac{1 - e}{1 + e}
+a & = \frac{1 - e}{1 + e} \label{eq:a}
 \end{align}
 leading to the transformation matrix
 \begin{align}
@@ -258,7 +257,7 @@ If we represent the local astrometric world coordinate system by an
 affine transformation that takes celestial coordinates to pixel
 coordinates, then we can multiply the two transformation matrices to
 convert from pixels to galaxy profile coordinates.  The FITS WCS
-standard\cite{wcs2} defines a transformation matrix $\CD$ that takes
+standard \citep{wcs2} defines a transformation matrix $\CD$ that takes
 pixels to intermediate world coordinates.  The combined transformation
 matrix $T$ is then
 \begin{align}
@@ -267,10 +266,10 @@ T & = (\CD)^{-1} E
 so that a covariance matrix in galaxy effective radius coordinates can
 be transformed into pixel space by computing
 \begin{align}
-V_{\textrm{pix}} &= T \, V \, T^T
+C &= T \, V \, T^T
 \label{eq:vpix}
-\quad .
 \end{align}
+where we will use isotropic variances $V = v I$.
 When we write out this matrix in full, we find that the $\cos{\theta}$
 and $\sin{\theta}$ terms always appear in pairs, so we can avoid
 computing these trigonometric functions explicitly in the above.  See
@@ -353,7 +352,7 @@ e^{-2 \pi^2 (a_i v^2 + 2 b_i v w + d_i w^2)}
 %%% Example of pushing our galaxy MOGs through a WCS, etc?
 
 
-Then, in Step 5, we directly evaluate these Gaussians in Fourier
+In Step 5 of our \trick, we directly evaluate these Gaussians in Fourier
 space, on the same discrete frequency grid $(v, w)$ used for the FFT
 of the PSF.  This has interesting properties.  By taking the Fourier
 transform, we are effectively assuming that the PSF model is well
@@ -433,33 +432,183 @@ illustrated in Figure \ref{fig:wrap}.
 
 % \acks
 
+\acknowledgements
+
+The Dunlap Institute is funded through an endowment established by the David Dunlap family and the University of Toronto.
+
+
 \appendix
 
 \section{Galaxy variances in pixel space}
 \label{app:transform}
 
-Writing out the matrix multiplication in \eqnref{eq:vpix}, we get
+Writing out the matrix multiplication in \eqnref{eq:vpix} assuming an
+isotropic variance $V = v I$, we get the pixel-space covariance matrix
 \begin{align}
-V_{\textrm{pix}} = \begin{bmatrix}
-V_{1,1} & V_{1,2} \\
-V_{2,1} & V_{2,2}
+C = v f \begin{bmatrix}
+C_{1,1} & C_{1,2} \\
+C_{2,1} & C_{2,2}
 \end{bmatrix}
 \end{align}
-where the matrix is symmetric so that $V_{1,2} = V_{2,1}$ and the terms are
+where the matrix is symmetric so that $C_{1,2} = C_{2,1}$ and the terms are
 \begin{align}
-V_{1,1} & =
-%
-a^2(w^2 c^2 + 2 u w c s + u^2 s^2) + w^2 s^2 - 2 u w c s + u^2 c^2
+f & = \left( \frac{r_e}{t w - u v} \right)^2
 \\
-V_{1,2} & =
+C_{1,1} & =
 %
--a^2 (v w c^2 + u v c s + t w c s + t u s^2) - v w s^2 + u v c s + t w c s - t u c^2
+%a^2(w^2 c^2 + 2 u w c s + u^2 s^2) + w^2 s^2 - 2 u w c s + u^2 c^2
+a^2(w^2 c^2 + 2 u w c s + u^2 s^2) + u^2 c^2 - 2 u w c s + w^2 s^2
 \\
-V_{2,2} & =
+C_{1,2} & =
+%
+%-a^2 (v w c^2 + u v c s + t w c s + t u s^2) - v w s^2 + u v c s + t w c s - t u c^2
+-a^2 (v w c^2 + (u v + t v) c s + t u s^2) - t u c^2 + (u v + t w) c s - v w s^2
+\\
+C_{2,2} & =
 %
 a^2 (v^2 c^2 + 2 t v c s + t^2 s^2) + t^2 c^2 - 2 t v c s + v^2 s^2
 \end{align}
+where $r_e$ is the galaxy effective radius in degrees,
+$a$ is the axis ratio (\eqnref{eq:a}) and
+we have defined the abbreviations
+\begin{align}
+\begin{bmatrix}
+t & u \\
+v & w
+\end{bmatrix}
+& = 
+\begin{bmatrix}
+\CD_{1,1} & \CD_{1,2} \\
+\CD_{2,1} & \CD_{2,2}
+\end{bmatrix}
+=
+\CD
+\\
+c &= \cos \theta \\
+s &= \sin \theta
+\end{align}
+where the $\CD$ matrix terms have units of degrees per pixel.
+Observe that the covariance terms only contain $c^2$, $cs$, and $s^2$
+terms.  We can therefore use the identities:
+\begin{align}
+c^2 & = \cos^2 \theta            =
+\tfrac{1}{2} \left(1 + \frac{e_1}{e} \right) \\
+s^2 & = \sin^2 \theta            =
+\tfrac{1}{2} \left(1 - \frac{e_1}{e} \right) \\
+cs  & = \sin \theta \cos \theta  = %\tfrac{1}{2} \frac{e_2}{e}
+\frac{e_2}{2 e}
+\end{align}
+where $e_1$ and $e_2$ are the two ellipticity components and $e =
+\sqrt{e_1^2 + e_2^2}$.  This allows us to avoid computing $\theta$,
+$\cos \theta$ and $\sin \theta$ explicitly when transforming a galaxy
+into pixel space.
 
+% NO we still need $a$
+% In \project{the Tractor} we find this particularly useful because we
+% use a ``softened'' remapping of the ellipticity components to avoid
+% the hard edges in parameter space $\|e\| < 1$.  Since the pixel-space
+% covariance matrix can be computed using only 
+
+For convenience, we repeat here the mixture-of-Gaussians fits for the
+SDSS truncated exponential and deVaucouleurs profiles that we use in
+\project{the Tractor}:
+\begin{center}
+\begin{tabular}{cllll}
+% {\catcode`\.\active\gdef.{\egroup\setbox2\hbox\bgroup}}
+%   \def\centerdots{\catcode`\.\active\setbox0\hbox\bgroup}
+%   \def\endcenterdots{\egroup\ifvoid2 \setbox2\hbox{0}\fi
+%      \ifdim \wd0>\wd2 \setbox2\hbox to\wd0{\unhbox2\hfill}\else
+%        \setbox0\hbox to\wd2{\hfill\unhbox0}\fi
+%      \catcode`\.12 \box0.\box2}
+% 
+% \newcolumntype{d}{>{\centerdots}c<{\endcenterdots}}
+\begin{tabular}{cdddd}
+\hline
+\textbf{Component} & \multicolumn{2}{c}{\textbf{Exponential}} & 
+\multicolumn{2}{c}{\textbf{deVaucoulers}} \\
+& \multicolumn{1}{c}{Amplitude}
+& \multicolumn{1}{c}{Variance}
+& \multicolumn{1}{c}{Amplitude}
+& \multicolumn{1}{c}{Variance} \\
+\hline
+1 & 
+$1.99485977 \times 10^{-4}$
+&
+$1.20078965 \times 10^{-3}$
+&
+$2.01837690 \times 10^{-3}$
+&
+$2.23759216 \times 10^{-4}$
+\\
+%
+2 &
+$2.61612679 \times 10^{-3}$
+&
+$8.84526493 \times 10^{-3}$
+&
+$1.13678862 \times 10^{-2}$
+&
+$1.00220099 \times 10^{-3}$
+\\
+%
+3 &
+$1.89726655 \times 10^{-2}$
+&
+$3.91463084 \times 10^{-2}$
+&
+$3.24716253 \times 10^{-2}$
+&
+$4.18731126 \times 10^{-3}$
+\\
+%
+4 &
+$1.00186544 \times 10^{-1}$
+&
+$1.39976817 \times 10^{-1}$
+&
+$7.19288205 \times 10^{-2}$
+&
+$1.69432589 \times 10^{-2}$
+\\
+%
+5 &
+$3.68534484 \times 10^{-1}$
+&
+$4.60962500 \times 10^{-1}$
+&
+$1.34272271 \times 10^{-1}$
+&
+$6.84850479 \times 10^{-2}$
+\\
+%
+6 &
+$5.09490694 \times 10^{-1}$
+&
+$1.50159566$
+&
+$2.11362649 \times 10^{-1}$
+&
+$2.87207080 \times 10^{-1}$
+\\
+%
+7 &
+- & - &
+$2.70999815 \times 10^{-1}$
+&
+$1.33320254$
+\\
+%
+8 &
+- & - &
+$2.65578557 \times 10^{-1}$
+&
+$8.40215071$
+\\
+\hline
+\end{tabular}
+\end{center}
+Fits for other numbers of mixture components are available in
+\cite{moggalaxy}.
 
 
 \begin{thebibliography}
@@ -475,7 +624,10 @@ Bertin, E., 2011, ADASS XX, ASP Conference Series, 442, 435
 %Evans, I.~N., Accomazzi, A., Mink, D.~J. and Rots, A.~H., eds.
 
 \bibitem[Calabretta \& Greisen(2002)]{wcs2}
-Calabretta,~M.~R. \& Greisen,~E.~W., 2002, \aa, 395, 1077
+Calabretta,~M.~R. \& Greisen,~E.~W., 2002, 
+%\AA,
+Astronomy \& Astrophysics, 
+395, 1077
 
 \bibitem[Hogg \& Lang(2013)]{moggalaxy}
 Hogg,~D.~W. \& Lang,~D., 2013, \pasp, 125, 719;
