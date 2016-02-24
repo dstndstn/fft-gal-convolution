@@ -2,11 +2,10 @@
 % All rights reserved.
 
 % TO-DO:
-% - think carefully about ``convolution'' vs ``correlation''
-
+% - Erin Sheldon -- paper reference?
 % - check for best Lupton-deV and Lupton-exp mixture components
-
 % - Calabretta & Greisen arxiv number?
+% - Bertin (psfex) arxiv number?
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -49,11 +48,11 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \title{A \trick\ for fast galaxy--PSF convolution}
 \author{Dustin~Lang\altaffilmark{1,2,3}}
 \altaffiltext{1}%
-{Department of Astronomy \& Astrophysics and Dunlap Institute,
+{Dunlap Institute and Department of Astronomy \& Astrophysics,
   University of Toronto,
   50 Saint George Street, Toronto, ON, M5S 3H4, Canada}
 \altaffiltext{2}%
-{Department of Physics \& Astronomy,
+{Visitor, Department of Physics \& Astronomy,
   University of Waterloo,
   200 University Avenue West,
   Waterloo, ON, N2L 3G1, Canada}
@@ -64,17 +63,24 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \shortauthors{Lang}
 
 \begin{abstract}
-  I present a \trick\ for the fast convolution of a model galaxy profile
-  by a point-spread function (PSF) model that can be represented in
-  the Fourier domain.  The \trick\ relies upon two observations: First, most
-  simple galaxy profiles of common interest (deVaucouleurs,
-  exponential, S\'ersic) can be approximated as mixtures of Gaussians.
-  Second, the Fourier transform of a Gaussian is a Gaussian, thus the
-  Fourier transform of a mixture-of-Gausssian approximation of a
-  galaxy can be directly evaluated in Fourier space.  This \trick\ 
-  allows the use of pixelized PSF models (ie, a PSF represented as a
-  grid of pixel values) in galaxy model-fitting approaches such as
+  I present a \trick\ for the fast convolution of a model galaxy
+  profile by a point-spread function (PSF) model that can be
+  represented in the Fourier domain.  The \trick\ relies upon two
+  observations: First, most simple galaxy profiles of common interest
+  (deVaucouleurs, exponential, S\'ersic) can be approximated as
+  mixtures of Gaussians.  Second, the Fourier transform of a Gaussian
+  is a Gaussian, thus the Fourier transform of a mixture-of-Gausssian
+  approximation of a galaxy can be directly evaluated in Fourier
+  space.
+  % Multiplication by the Fourier transform of the PSF model
+  % accomplishes the convolution, and an inverse Fourier transformation
+  % produces the required result in pixel space.
+  This \trick\ allows
+  the efficient use of pixelized PSF models (ie, a PSF represented as
+  a grid of pixel values) in galaxy model-fitting approaches such as
   \project{the Tractor}.
+  %
+  %Example code is available alongside the paper 
 \end{abstract}
 
 \section{Introduction}
@@ -163,7 +169,7 @@ this makes the computation expensive.
     \textbf{Top-left}: pixelized PSF model (zoom-in of central region).
     %
     \textbf{Bottom-left}: FFT of the pixelized PSF model.  Since the PSF model is
-    purely real, we show only half the symmetric Fourier transform; the FFT is
+    purely real, we show only half the symmetric Fourier transform. The FFT is
     complex; we show here the absolute value.
     % 
     \textbf{Top-middle}: pixel-space galaxy profile (which would be
@@ -196,7 +202,7 @@ representation of the galaxy by the Fourier transform of the pixelized
 PSF model, then inverse Fourier transform back to pixel space to get
 the PSF-convolved galaxy profile.
 
-The method, then, is:
+We will elaborate on each step of the \trick\ below.  In summary:
 \begin{enumerate}
 \item Choose the desired output image size and embed the pixelized PSF
   model in a zero-padded image of this size.
@@ -211,13 +217,27 @@ The method, then, is:
 \item Multiply the PSF and galaxy Fourier transforms and inverse-FFT
   back to pixel space.
 \end{enumerate}
+%We will elaborate on each step below.
 
-
-
+The process is illustrated in Figure \ref{fig:example}.  Example code
+is available alongside the paper source,\footnote{ Available at
+  \niceurl{http://github.com/dstndstn/fft-gal-convolution}.}  and the
+method is also implemented in \project{the Tractor} code.
 
 Step 1, choosing the desired output image size, depends on the size of
 the PSF model as well as the galaxy.  If the chosen size is too small,
 wrap-around will occur since the FFT is periodic.
+
+In Step 2, we compute the FFT of the PSF.  If the PSF is constant
+across the image, this FFT need only be computed once.  Alternatively,
+some PSF modelling tools, including \project{PsfEx} \citep{psfex},
+produce \emph{eigen-PSF} models.  That is, the PSF model varies
+spatially across the image, and the variation is represented as
+polynomial variations in the amplitudes of a set of PSF components.
+This is convenient, since the FFT of each eigen-component can be
+computed once in preprocessing and the FFT at a given position in the
+image can be computed by weighting the component FFTs using the PSF
+model's polynomial spatial variation terms.
 
 In Step 3, we transform the mixture-of-Gaussians approximation of the
 galaxy profiles from their representation in units of galaxy effective
@@ -290,7 +310,7 @@ g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}}
 \exp\left( -\frac{1}{2} \bm{x}^T C^{-1} \bm{x} \right)
 \end{equation}
 which becomes, writing out the vector $\bm{x}$ as $(x,y)^T$
-and covariance $C = \bigl(\begin{smallmatrix}
+and symmetric covariance $C = \bigl(\begin{smallmatrix}
 a&b \\ b&d
 \end{smallmatrix} \bigr)$,
 \begin{equation}
@@ -363,7 +383,7 @@ the atmosphere'' at the native image pixel scale and apply FFT
 convolution na\"ively: In the limit, a point-like galaxy has power at
 all frequencies.  But when we multiply the PSF and galaxy profile in
 Fourier space, all that high-frequency power will be zeroed out by the
-assumption of well-sampled PSF model.  Effectively, by evaluating the
+assumption of a well-sampled PSF model.  Effectively, by evaluating the
 galaxy Fourier transform directly in the frequency space of the PSF
 model, we are applying a perfect low-pass filter at exactly the
 Nyquist limit.  By zeroing out the high-frequency power, we avoid the
@@ -373,8 +393,6 @@ undersampled signal.
 
 Finally, in Step 6, we multiply the PSF and galaxy Fourier transforms,
 and apply the inverse FFT to return to pixel space.
-
-Figure \ref{fig:example} illustrates this process.
 
 \section{Discussion}
 
@@ -391,14 +409,6 @@ should provide significant speedups.
 
 %http://homepage1.nifty.com/herumi/soft/fmath.html
 
-Some PSF modelling tools, including \project{PsfEx} \citep{psfex},
-produce \emph{eigen-PSF} models.  That is, the PSF model varies
-spatially across the image, and the variation is represented as
-polynomial variations in the amplitudes of a set of PSF components.
-This is convenient when used with our \trick, since the FFT of each
-PSF component can be computed once in preprocessing and the FFT at a
-given position in the image can be computed by weighting the component
-FFTs using the PSF model's polynomial spatial variation terms.
 
 \begin{figure}
 \begin{center}
@@ -634,6 +644,7 @@ Hogg,~D.~W. \& Lang,~D., 2013, \pasp, 125, 719;
 
 % PhoSim: a code to simulate telescopes one photon at a time
 %Peterson,~J.~R., 2014, Journal of Instrumentation, 9, C04010;
+
 %Simulation of Astronomical Images from Optical Survey Telescopes using a Comprehensive Photon Monte Carlo Approach
 \bibitem[Peterson \etal(2015)]{phosim}
 Peterson,~J.~R. \etal, 2015, \apjs, 218, 14;
