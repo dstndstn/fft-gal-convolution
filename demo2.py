@@ -8,6 +8,7 @@ def galaxy_psf_convolution(re, e1, e2, profile,
                            cdmatrix, dx, dy, psfimage):
 
     # Compute galaxy affine transform terms
+    # eqn (2)
     e = np.hypot(e1, e2)
     # eqn (A9)
     # c2 = cos^2 theta
@@ -18,8 +19,9 @@ def galaxy_psf_convolution(re, e1, e2, profile,
     # eqn (A11)
     # cs = cos theta * sin theta
     cs = 0.5 * e2/e
-    # Inverse Axis ratio
-    a = (1 + e) / (1 - e)
+    # Axis ratio minor/major
+    # eqn (3)
+    a = (1 - e) / (1 + e)
 
     # CD matrix term shortcuts
     # eqn (A6)
@@ -29,18 +31,16 @@ def galaxy_psf_convolution(re, e1, e2, profile,
     w = cdmatrix[1, 1]
     # eqn (A2) -- pixel scale factor
     f = (re / 3600. / (t*w-u*v))**2
-
-
     
     # Galaxy * WCS covariance matrix terms
     # eqn (A3)
-    c11 = (1/a**2 * (w**2*c2 + 2*u*w*cs + u**2*s2)
+    c11 = (a**2 * (w**2*c2 + 2*u*w*cs + u**2*s2)
            + w**2*s2 - 2*u*w*cs + u**2*c2)
     # eqn (A4)
-    c12 = (-1/a**2 * (v*w*c2 + u*v*cs + t*w*cs + t*u*s2)
+    c12 = (-a**2 * (v*w*c2 + u*v*cs + t*w*cs + t*u*s2)
            - v*w*s2 + u*v*cs + t*w*cs - t*u*c2)
     # eqn (A5)
-    c22 = (1/a**2 * (v**2*c2 + 2*t*v*cs + t**2*s2)
+    c22 = (a**2 * (v**2*c2 + 2*t*v*cs + t**2*s2)
            + t**2*c2 - 2*t*v*cs + v**2*s2)
 
     # Compute Fourier transform of PSF, recording the frequencies v,w
