@@ -9,6 +9,8 @@ def galaxy_psf_convolution(re, e1, e2, profile,
     # Compute galaxy affine transform terms
     # eqn (2)
     e = np.hypot(e1, e2)
+    orig_e = e
+    e = max(e, 1e-16)
     # eqn (A9)
     # c2 = cos^2 theta
     c2 = 0.5 * (1 + e1/e)
@@ -21,7 +23,9 @@ def galaxy_psf_convolution(re, e1, e2, profile,
     # Axis ratio minor/major
     # eqn (3)
     a = (1 - e) / (1 + e)
-
+    if orig_e == 0:
+        a = 1.
+    
     # CD matrix term shortcuts
     # eqn (A6)
     t = cdmatrix[0, 0]
