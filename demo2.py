@@ -1,4 +1,3 @@
-import pylab as plt
 import numpy as np
 
 ## FIXME:
@@ -89,12 +88,9 @@ class DevGalaxy(object):
                       1.69432589e-02,   6.84850479e-02,   2.87207080e-01,
                       1.33320254e+00,   8.40215071e+00])
 
-
 class GaussianGalaxy(object):
     amp = np.array([1.])
     var = np.array([1.])
-    
-
 
 
 if __name__ == '__main__':
@@ -107,8 +103,9 @@ if __name__ == '__main__':
     xx,yy = np.meshgrid(np.arange(pw), np.arange(ph))
     cx1,cy1 = 28,28
     co = 0.7
-    # Create a weird pixelized PSF
-    pixpsf = (np.exp(-0.5 * ((xx-cx1 )**2 + (yy-cy1)**2 + (xx-cx1)*(yy-cy1)*co)/ 1.**2) +
+    # Create a weird pixelized PSF with three peaks
+    pixpsf = (np.exp(-0.5 * ((xx-cx1 )**2 + (yy-cy1)**2 + 
+                             (xx-cx1)*(yy-cy1)*co)/ 1.**2) +
               np.exp(-0.5 * ((xx-34.5)**2 + (yy-28)**2) / 1.**2) +
               np.exp(-0.5 * ((xx-34  )**2 + (yy-34)**2) / 1.**2))
 
@@ -128,14 +125,33 @@ if __name__ == '__main__':
 
     plt.clf()
     plt.imshow(G, interpolation='nearest', origin='lower', cmap='gray')
+    plt.title('Exp Galaxy')
     plt.savefig('demo-1.png')
 
     G = galaxy_psf_convolution(re, e1, e2, ExpGalaxy, cd, 0.5, 0., pixpsf)
 
     plt.clf()
     plt.imshow(G, interpolation='nearest', origin='lower', cmap='gray')
+    plt.title('Exp Galaxy (shifted)')
     plt.savefig('demo-2.png')
-    
 
+    # DeV profile
+
+    G = galaxy_psf_convolution(re, e1, e2, DevGalaxy, cd, 0.5, 0., pixpsf)
+
+    plt.clf()
+    plt.imshow(G, interpolation='nearest', origin='lower', cmap='gray')
+    plt.title('DeV Galaxy')
+    plt.savefig('demo-3.png')
+    
+    # Tiny re
+    re = 0.1
+    
+    G = galaxy_psf_convolution(re, e1, e2, ExpGalaxy, cd, 0.5, 0., pixpsf)
+
+    plt.clf()
+    plt.imshow(G, interpolation='nearest', origin='lower', cmap='gray')
+    plt.title('Compact Galaxy')
+    plt.savefig('demo-4.png')
 
     
