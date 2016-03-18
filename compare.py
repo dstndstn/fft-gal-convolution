@@ -16,39 +16,21 @@ def measure(img):
     print('Center of mass: %.2f, %.2f' % (cx,cy))
     print('Second moment: %.2f' % cr)
 
-if __name__ == '__main__':
-    import matplotlib
-    matplotlib.use('Agg')
-    import pylab as plt
-
-    # PSF (and convolved galaxy) image size
-    ph,pw = 64,64
-
-    xx,yy = np.meshgrid(np.arange(pw), np.arange(ph))
-    cx,cy = pw/2, ph/2
-
-    psf_sigma = 1.
-
-    # shifts = np.linspace(-2., 2., 21)
-    # cms = []
-    # for shift in shifts:
-    #     from scipy.ndimage.measurements import center_of_mass
-    #     psf = galsim.Gaussian(flux=1., sigma=psf_sigma)
-    #     psf = psf.shift(dx=shift, dy=0)
-    #     image = galsim.ImageF(pw,ph)
-    #     psf.drawImage(image)
-    #     img = image.array
-    #     img /= img.sum()
-    #     cy,cx = center_of_mass(img)
-    #     print('Shift', shift, 'cm', cx)
-    #     cms.append(cx)
-    # plt.clf()
-    # plt.plot(shifts, cms, 'b.')
-    # plt.xlabel('Shift')
-    # plt.ylabel('Measured center of mass')
-    # plt.title('GalSim shift() behavior')
-    # plt.savefig('shift.png')
+class plotset(object):
+    def __init__(self, prefix):
+        self.n = 0
+        self.prefix = prefix
+    def savefig(self):
+        plt.savefig(self.prefix + '%02i.png' % self.n)
+        self.n += 1
     
+def compare(ph, pw, psf_sigma, gal_sigma, ps):
+    pixscale = 1.
+    cd = pixscale * np.eye(2) / 3600.
+
+    cx,cy = pw/2, ph/2
+    xx,yy = np.meshgrid(np.arange(pw), np.arange(ph))
+
     # Create pixelized PSF (Gaussian)
     pixpsf = np.exp(-0.5 * ((xx-cx)**2 + (yy-cy)**2) / psf_sigma**2)
 
@@ -56,47 +38,27 @@ if __name__ == '__main__':
     plt.imshow(pixpsf, interpolation='nearest', origin='lower', cmap='gray')
     plt.title('PSF')
     plt.colorbar()
-    plt.savefig('c0.png')
+    ps.savefig()
 
-    pixscale = 1.
-    re = 1.
-    cd = pixscale * np.eye(2) / 3600.
-    
-    G = galaxy_psf_convolution(re, 0., 0., GaussianGalaxy, cd, 0., 0., pixpsf)
+    G = galaxy_psf_convolution(gal_sigma, 0., 0., GaussianGalaxy, cd,
+                               0., 0., pixpsf)
     G /= G.sum()
     
     plt.clf()
     plt.imshow(G, interpolation='nearest', origin='lower', cmap='gray')
     plt.title('Convolved')
     plt.colorbar()
-    plt.savefig('c1.png')
+    ps.savefig()
 
     print('Convolved:')
     measure(G)
     
-    gal = galsim.Gaussian(flux=1., sigma=re)
+    gal = galsim.Gaussian(flux=1., sigma=gal_sigma)
     psf = galsim.Gaussian(flux=1., sigma=psf_sigma)
-    #final = gal
     final = galsim.Convolve([gal, psf])
-    #image = final.draw(dx=1.)
-    #final = final.shift(dx=0.5, dy=0.5)
     print('Final:', final)
     image = galsim.ImageF(pw,ph)
-    # final.drawImage(image) #, method='sb')
-    # gs = image.array
-    # gs /= gs.sum()
-    # 
-    # print('Galsim:')
-    # measure(gs)
-    # 
-    # # (shift is in arcsec)
-    # # ??? Shifting by 0.5,0.5 does not shift the centroid by that amount!!
-    # #final = final.shift(dx=0.5, dy=0.5)
-    # #print('Final:', final)
-    # image = galsim.ImageF(pw,ph)
-    final.drawImage(image, offset=(0.5, 0.5), 
-                    scale=pixscale, method='sb')#method='no_pixel')
-    #, method='sb')
+    final.drawImage(image, offset=(0.5, 0.5), scale=pixscale, method='sb')
     gs = image.array
     gs /= gs.sum()
     print('Galsim shifted:')
@@ -107,11 +69,10 @@ if __name__ == '__main__':
     plt.imshow(gs, interpolation='nearest', origin='lower', cmap='gray')
     plt.title('GalSim analytic')
     plt.colorbar()
-    plt.savefig('c2.png')
+    ps.savefig()
     
     # Create pixelized PSF (x) Gaussian
-    gal_psf_sigma = np.hypot(psf_sigma, re)
-
+    gal_psf_sigma = np.hypot(psf_sigma, gal_sigma)
     Gpix = np.exp(-0.5 * ((xx-cx)**2 + (yy-cy)**2) / gal_psf_sigma**2)
     Gpix /= Gpix.sum()
 
@@ -119,12 +80,57 @@ if __name__ == '__main__':
     plt.imshow(Gpix, interpolation='nearest', origin='lower', cmap='gray')
     plt.title('Analytic')
     plt.colorbar()
-    plt.savefig('c3.png')
+    ps.savefig()
     
     plt.clf()
     plt.imshow(G - Gpix, interpolation='nearest', origin='lower', cmap='gray')
     plt.title('Convolved - Analytic')
     plt.colorbar()
-    plt.savefig('c4.png')
+    ps.savefig()
+
+    # Create pixelized galaxy
+    gx,gy = cx,cy
+    pixgal = np.exp(-0.5 * ((xx-gx)**2 + (yy-gy)**2) / gal_sigma**2)
+
+    # FFT convolution
+    Fpsf = np.fft.rfft2(pixpsf)
+    print('Fpsf:', Fpsf.shape, Fpsf.dtype)
+    Fgal = np.fft.rfft2(pixgal)
+    print('Fgal:', Fgal.shape, Fgal.dtype)
+    Gconv = np.fft.irfft2(Fpsf * Fgal)
+    Gconv = np.fft.ifftshift(Gconv)
+    print('Gconv:', Gconv.shape, Gconv.dtype)
+    Gconv /= Gconv.sum()
+
+    print('Pixelized:')
+    measure(Gconv)
+
+    plt.clf()
+    plt.imshow(Gconv, interpolation='nearest', origin='lower', cmap='gray')
+    plt.title('Pixelized convolution')
+    plt.colorbar()
+    ps.savefig()
+    
+    plt.clf()
+    plt.imshow(G - Gconv, interpolation='nearest', origin='lower', cmap='gray')
+    plt.title('Convolved - Pixelized')
+    plt.colorbar()
+    ps.savefig()
+
+
+    
+if __name__ == '__main__':
+    import matplotlib
+    matplotlib.use('Agg')
+    import pylab as plt
+
+    ps = plotset('c')
+    
+    # PSF (and convolved galaxy) image size
+    ph,pw = 64,64
+
+    psf_sigma = 1.
+
+    compare(ph, pw, psf_sigma, gal_sigma, ps)
 
     
