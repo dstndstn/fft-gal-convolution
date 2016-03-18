@@ -28,6 +28,26 @@ if __name__ == '__main__':
     cx,cy = pw/2, ph/2
 
     psf_sigma = 1.
+
+    # shifts = np.linspace(-2., 2., 21)
+    # cms = []
+    # for shift in shifts:
+    #     from scipy.ndimage.measurements import center_of_mass
+    #     psf = galsim.Gaussian(flux=1., sigma=psf_sigma)
+    #     psf = psf.shift(dx=shift, dy=0)
+    #     image = galsim.ImageF(pw,ph)
+    #     psf.drawImage(image)
+    #     img = image.array
+    #     img /= img.sum()
+    #     cy,cx = center_of_mass(img)
+    #     print('Shift', shift, 'cm', cx)
+    #     cms.append(cx)
+    # plt.clf()
+    # plt.plot(shifts, cms, 'b.')
+    # plt.xlabel('Shift')
+    # plt.ylabel('Measured center of mass')
+    # plt.title('GalSim shift() behavior')
+    # plt.savefig('shift.png')
     
     # Create pixelized PSF (Gaussian)
     pixpsf = np.exp(-0.5 * ((xx-cx)**2 + (yy-cy)**2) / psf_sigma**2)
@@ -38,8 +58,9 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.savefig('c0.png')
 
+    pixscale = 1.
     re = 1.
-    cd = np.eye(2) / 3600.
+    cd = pixscale * np.eye(2) / 3600.
     
     G = galaxy_psf_convolution(re, 0., 0., GaussianGalaxy, cd, 0., 0., pixpsf)
     G /= G.sum()
@@ -55,25 +76,27 @@ if __name__ == '__main__':
     
     gal = galsim.Gaussian(flux=1., sigma=re)
     psf = galsim.Gaussian(flux=1., sigma=psf_sigma)
-    final = gal
-    #final = galsim.Convolve([gal, psf])
+    #final = gal
+    final = galsim.Convolve([gal, psf])
     #image = final.draw(dx=1.)
     #final = final.shift(dx=0.5, dy=0.5)
     print('Final:', final)
     image = galsim.ImageF(pw,ph)
-    final.drawImage(image) #, method='sb')
-    gs = image.array
-    gs /= gs.sum()
-
-    print('Galsim:')
-    measure(gs)
-
-    # ??? Shifting by 0.5,0.5 does not shift the centroid by that amount!!
-    
-    final = final.shift(dx=0.5, dy=0.5)
-    print('Final:', final)
-    image = galsim.ImageF(pw,ph)
-    final.drawImage(image) #, method='sb')
+    # final.drawImage(image) #, method='sb')
+    # gs = image.array
+    # gs /= gs.sum()
+    # 
+    # print('Galsim:')
+    # measure(gs)
+    # 
+    # # (shift is in arcsec)
+    # # ??? Shifting by 0.5,0.5 does not shift the centroid by that amount!!
+    # #final = final.shift(dx=0.5, dy=0.5)
+    # #print('Final:', final)
+    # image = galsim.ImageF(pw,ph)
+    final.drawImage(image, offset=(0.5, 0.5), 
+                    scale=pixscale, method='sb')#method='no_pixel')
+    #, method='sb')
     gs = image.array
     gs /= gs.sum()
     print('Galsim shifted:')
