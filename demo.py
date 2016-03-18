@@ -4,12 +4,36 @@ import numpy as np
 # - URL for Hogg's TheTractor github repo
 
 def galaxy_psf_convolution(re, e1, e2, profile,
-                           cdmatrix, dx, dy, psfimage):
+                           cdmatrix, dx, dy, psfimage,
+                           debug=False):
+    '''
+    Perform the Fourier-space convolution of a parametric galaxy
+    profile by a pixelized PSF model.
 
+    re: float, effective radius in arcsec
+    e1: float (-1,1): ellipticity component
+    e2: float (-1,1): ellipticity component
+    profile: object with "amp" and "var" terms, eg ExpGalaxy, DevGalaxy,
+       or GaussianGalaxy, mixture-of-Gaussian representations of galaxy
+       profile.
+    cdmatrix: 2x2 numpy array, [[CD1_1, CD1_2],[CD2_1, CD2_2]] of local
+       astrometric transformation
+    dx: subpixel shift in x
+    dy: subpixel shift in y
+    psfimage: numpy array (image) of the PSF
+    debug: return intermediate values, for debugging?
+
+    Return:
+    PSF-convolved galaxy profile as numpy image the same size as the psfimage.
+
+    OR tuple of stuff (see below) if debug=True.
+    
+    '''
     # Compute galaxy affine transform terms
     # eqn (2)
     e = np.hypot(e1, e2)
     orig_e = e
+    # add this max() to handle e1=e2=0.
     e = max(e, 1e-16)
     # eqn (A9)
     # c2 = cos^2 theta
@@ -71,6 +95,9 @@ def galaxy_psf_convolution(re, e1, e2, profile,
     # multiply in Fourier space and inverse-transform
     G = np.fft.irfft2(Fgal * P, s=(pH,pW))
 
+    if debug:
+        return P, Fgal, G
+    
     return G
     
     
