@@ -2,15 +2,9 @@
 % All rights reserved.
 
 % TO-DO:
-% - Erin Sheldon -- paper reference?
-% - check for best Lupton-deV and Lupton-exp mixture components
-% - Calabretta & Greisen arxiv number?
-% - Bertin (psfex) arxiv number?
-
 % - Compare speed & accuracy vs galsim ?  Eg, on a Gaussian profile as
 %   it goes from ~ well-sampled to undersampled
 %   (pixel space vs analytic in galsim?)
-% - Reference URL for Hogg's TheTractor github repo
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -95,6 +89,7 @@ appear when observed with a (real or imagined) telescope and camera,
 and given observing conditions (sky brightness, atmosphere).  These
 include \project{GalSim} \citep{galsim}, \project{Ufig} \citep{ufig},
 \project{phosim} \citep{phosim}, \project{galfit} \citep{galfit}, 
+\project{ngmix} \citep{ngmix},
 \project{the Tractor} (Lang \etal, in prep), and several others.
 
 %\project{MegaMorph} \citep{megamorph}, 
@@ -231,7 +226,7 @@ method is also implemented in \project{the Tractor} code.
 
 Step 1, choosing the desired output image size, depends on the size of
 the PSF model as well as the galaxy.  If the chosen size is too small,
-wrap-around will occur since the FFT is periodic.
+wrap-around will occur since the FFT is periodic; see Figure \ref{fig:wrap}.
 
 In Step 2, we compute the FFT of the PSF.  If the PSF is constant
 across the image, this FFT need only be computed once.  Alternatively,
@@ -620,8 +615,8 @@ $8$ & $40215071$
 \end{tabular}
 \end{center}
 Fits for other numbers of mixture components are available in
-\cite{moggalaxy}.
-
+\cite{moggalaxy}.  The code used to compute these values is publicly
+available at \niceurl{http://github.com/davidwhogg/TheTractor}.
 
 \begin{thebibliography}
 
@@ -639,7 +634,8 @@ Bertin, E., 2011, ADASS XX, ASP Conference Series, 442, 435
 Calabretta,~M.~R. \& Greisen,~E.~W., 2002, 
 %\AA,
 Astronomy \& Astrophysics, 
-395, 1077
+395, 1077;
+\arxiv{astro-ph/0207413}
 
 \bibitem[Hogg \& Lang(2013)]{moggalaxy}
 Hogg,~D.~W. \& Lang,~D., 2013, \pasp, 125, 719;
@@ -662,6 +658,10 @@ Peterson,~J.~R. \etal, 2015, \apjs, 218, 14;
   Rowe,~B. \etal, 2015, Astronomy and
   Computing, 10, 121; \arxiv{1407.7676}
 % GalSim: The modular galaxy image simulation toolkit
+
+\bibitem[Sheldon (2014]{ngmix}
+  Sheldon,~E.~S., 2014, MNRAS, 444, 25;
+  \arxiv{1403.7669}
 
 \end{thebibliography}
 

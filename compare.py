@@ -49,8 +49,8 @@ def compare(ph, pw, psf_sigma, gal_sigma, ps, subsample):
     #Gmine = galaxy_psf_convolution(gal_sigma, 0., 0., GaussianGalaxy, cd,
     #                           0., 0., pixpsf)
 
-    P,FG,Gmine = galaxy_psf_convolution(gal_sigma, 0., 0., GaussianGalaxy, cd,
-                                        0., 0., pixpsf, debug=True)
+    P,FG,Gmine,v,w = galaxy_psf_convolution(gal_sigma, 0., 0., GaussianGalaxy,
+                                            cd, 0., 0., pixpsf, debug=True)
 
     Gmine /= Gmine.sum()
     

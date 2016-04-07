@@ -1,8 +1,5 @@
 import numpy as np
 
-## FIXME:
-# - URL for Hogg's TheTractor github repo
-
 def galaxy_psf_convolution(re, e1, e2, profile,
                            cdmatrix, dx, dy, psfimage,
                            debug=False):
@@ -96,8 +93,8 @@ def galaxy_psf_convolution(re, e1, e2, profile,
     G = np.fft.irfft2(Fgal * P, s=(pH,pW))
 
     if debug:
-        return P, Fgal, G
-    
+        return P, Fgal, G, v, w
+
     return G
     
     
