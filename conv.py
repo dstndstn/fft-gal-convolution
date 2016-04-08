@@ -7,8 +7,10 @@ from astrometry.util.plotutils import PlotSequence, dimshow
 
 from compare import measure
     
+from demo import galaxy_psf_convolution, GaussianGalaxy
 
-def integrate_gaussian(G, xx, yy):
+def integrate_gaussian(G, x, y):
+    xx,yy = np.meshgrid(x, y)
     Gcdf = G.cdf(xx) * G.cdf(yy)
     Gcdf = Gcdf[1:,1:] + Gcdf[:-1,:-1] - Gcdf[1:,:-1] - Gcdf[:-1,1:]
     return Gcdf
@@ -26,8 +28,22 @@ def bin_image(data, S):
     return newdata
 
 
-def compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma,
-                       get_ffts=False):
+def render_airy(params, x, y):
+    scale,center = params
+    airyx = np.abs((x-center) * scale)
+    airyx = np.hypot(airyx[:,np.newaxis], airyx[np.newaxis,:])
+    A = (2. * scipy.special.j1(airyx) / (airyx))**2
+    A[airyx == 0] = 1.
+    A /= np.sum(A)
+    return A
+    #A = (2. * scipy.special.j1(airyx) / (airyx))**2
+    #A[airyx == 0] = 1.
+    #pixpsf = A[:,np.newaxis] * A[np.newaxis,:]
+    #return pixpsf
+
+def compare_subsampled(S, s, ps, psf, pixpsf, Gmine,v,w, gal_sigma, psf_sigma,
+                       cd,
+                       get_ffts=False, eval_psf=integrate_gaussian):
     print()
     print('Subsample', s)
     print()
@@ -35,18 +51,31 @@ def compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma,
     step = 1./s
     sz = s * (S-1) + 1
     
-    xx,yy = np.meshgrid(np.arange(0, S, step)[:sz+1],
-                        np.arange(0, S, step)[:sz+1])
+    #x = np.arange(0, S, step)[:sz+1]
+    x = np.arange(0, S, step)[:sz]
+    #y = np.arange(0, S, step)[:sz+1]
     # Create pixelized PSF (Gaussian)
-    subpixpsf = integrate_gaussian(psf, xx, yy)
-
+    sx = x - 0.5 + step/2.
+    subpixpsf = eval_psf(psf, sx, sx)
     binned = bin_image(subpixpsf, s)
 
     bh,bw = binned.shape
     pixpsf1 = pixpsf[:bh,:bw]
     ph,pw = pixpsf.shape
     binned = binned[:ph,:pw]
-    
+
+    print('Binned PSF:')
+    measure(binned)
+    print('Pix PSF:')
+    measure(pixpsf)
+
+    # Recompute my convolution using the binned PSF
+    P,FG,Gmine,v,w = galaxy_psf_convolution(
+        gal_sigma, 0., 0., GaussianGalaxy, cd,
+        0., 0., binned, debug=True)
+
+    xx,yy = np.meshgrid(x,x)
+
     # plt.clf()
     # 
     # plt.subplot(2,2,1)
@@ -74,6 +103,8 @@ def compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma,
     # Create pixelized galaxy image
     #gxx,gyy = xx + step/2., yy + step/2.
     gxx,gyy = xx,yy
+    #gxx,gyy = xx - step, yy - step
+    #gxx,gyy = xx - step/2., yy - step/2.
     center = S/2
     subpixgal = np.exp(-0.5 * ((gxx-center)**2 + (gyy-center)**2)/gal_sigma**2)
     sh,sw = subpixpsf.shape
@@ -85,11 +116,32 @@ def compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma,
     measure(subpixpsf)
     print('Subpix gal:')
     measure(subpixgal)
-    
+
     # FFT convolution
     Fpsf = np.fft.rfft2(subpixpsf)
     spg = np.fft.ifftshift(subpixgal)
 
+    # plt.clf()
+    # for i in range(len(w)):
+    #     plt.plot(v, Fpsf[i,:], 'c-')
+    # for i in range(len(v)):
+    #     plt.plot(w, Fpsf[:,i], 'm-')
+    # plt.title('PSF Fourier transform')
+    # ps.savefig()
+    # 
+    # IV = np.argsort(v)
+    # IW = np.argsort(w)
+    # plt.clf()
+    # for i in range(len(w)):
+    #     plt.plot(v[IV], np.abs(Fpsf[i,IV]), 'c-')
+    # for i in range(len(v)):
+    #     plt.plot(w[IW], np.abs(Fpsf[IW,i]), 'm-')
+    # plt.title('abs PSF Fourier transform')
+    # ps.savefig()
+    # 
+    # plt.yscale('log')
+    # ps.savefig()
+    
     # plt.clf()
     # dimshow(spg)
     # plt.title('spg')
@@ -120,7 +172,7 @@ def compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma,
 
     mh,mw = Gmine.shape
     binned = binned[:mh,:mw]
-    
+
     plt.clf()
 
     plt.subplot(2,3,1)
@@ -140,13 +192,13 @@ def compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma,
 
     plt.subplot(2,3,4)
     dimshow(np.log10(np.maximum(binned / np.max(binned), 1e-12)))
-    plt.title('binned FFT conv')
+    plt.title('log binned FFT conv')
     plt.colorbar()
 
     plt.subplot(2,3,5)
     dimshow(np.log10(np.maximum(Gmine / np.max(Gmine), 1e-12)))
     #dimshow(Gmine)
-    plt.title('my conv')
+    plt.title('log my conv')
     plt.colorbar()
 
     gh,gw = Gmine.shape
@@ -175,79 +227,110 @@ def main():
     center = S/2
     print('Center', center)
 
-    for psf_sigma in [2., 1.5, 1.]:
-
-        # psf
-        psf = scipy.stats.norm(loc=center + 0.5, scale=psf_sigma)
+    #for psf_sigma in [2., 1.5, 1.]:
+    for psf_sigma in [2.]:
 
         rms2 = []
 
         x = np.arange(S)
-        xx,yy = np.meshgrid(x, np.arange(S))
-        Pcdf = psf.cdf(xx) * psf.cdf(yy)
+        y = np.arange(S)
+        xx,yy = np.meshgrid(x, y)
+
+        scale = 1.5 / psf_sigma
+        pixpsf = render_airy((scale, center), x, y)
+        psf = (scale,center)
+        eval_psf = render_airy
+
+
+        plt.clf()
+        plt.subplot(2,1,1)
+        plt.plot(x, pixpsf[center,:], 'b-')
+        plt.plot(x, pixpsf[:,center], 'r-')
+        plt.subplot(2,1,2)
+        plt.plot(x, np.maximum(1e-16, pixpsf[center,:]), 'b-')
+        plt.plot(x, np.maximum(1e-16, pixpsf[:,center]), 'r-')
+        plt.yscale('log')
+        ps.savefig()
+
+        plt.clf()
+        plt.imshow(pixpsf, interpolation='nearest', origin='lower')
+        ps.savefig()
+
+        plt.clf()
+        plt.imshow(np.log10(np.maximum(1e-16, pixpsf)),
+                   interpolation='nearest', origin='lower')
+        plt.colorbar()
+        plt.title('log PSF')
+        ps.savefig()
+        
+        # psf
+        #psf = scipy.stats.norm(loc=center + 0.5, scale=psf_sigma)
+
         # plt.clf()
         # plt.imshow(Pcdf, interpolation='nearest', origin='lower')
         # ps.savefig()
-        pixpsf = integrate_gaussian(psf, xx, yy)
 
-        padpsf = np.zeros((S*2-1, S*2-1))
-        ph,pw = pixpsf.shape
-        padpsf[S/2:S/2+ph, S/2:S/2+pw] = pixpsf
-        Fpsf = np.fft.rfft2(padpsf)
-
-        padh,padw = padpsf.shape
-        v = np.fft.rfftfreq(padw)
-        w = np.fft.fftfreq(padh)
-        fmax = max(max(np.abs(v)), max(np.abs(w)))
-        cut = fmax / 2. * 1.000001
-        #print('Frequence cut:', cut)
-        Ffiltpsf = Fpsf.copy()
-        #print('Ffiltpsf', Ffiltpsf.shape)
-        #print((np.abs(w) < cut).shape)
-        #print((np.abs(v) < cut).shape)
-        Ffiltpsf[np.abs(w) > cut, :] = 0.
-        Ffiltpsf[:, np.abs(v) > cut] = 0.
-        #print('pad v', v)
-        #print('pad w', w)
-
-        filtpsf = np.fft.irfft2(Ffiltpsf, s=(padh,padw))
-
-        print('filtered PSF real', np.max(np.abs(filtpsf.real)))
-        print('filtered PSF imag', np.max(np.abs(filtpsf.imag)))
-        
-        plt.clf()
-        plt.subplot(2,3,1)
-        dimshow(Fpsf.real)
-        plt.colorbar()
-        plt.title('Padded PSF real')
-        plt.subplot(2,3,4)
-        dimshow(Fpsf.imag)
-        plt.colorbar()
-        plt.title('Padded PSF imag')
-
-        plt.subplot(2,3,2)
-        dimshow(Ffiltpsf.real)
-        plt.colorbar()
-        plt.title('Filt PSF real')
-        plt.subplot(2,3,5)
-        dimshow(Ffiltpsf.imag)
-        plt.colorbar()
-        plt.title('Filt PSF imag')
-
-        plt.subplot(2,3,3)
-        dimshow(filtpsf.real)
-        plt.title('PSF real')
-        plt.colorbar()
-
-        plt.subplot(2,3,6)
-        dimshow(filtpsf.imag)
-        plt.title('PSF imag')
-        plt.colorbar()
-        
-        ps.savefig()
-
-
-        pixpsf = filtpsf
+        # #Pcdf = psf.cdf(xx) * psf.cdf(yy)
+        # #pixpsf = integrate_gaussian(psf, xx, yy)
+        # 
+        # padpsf = np.zeros((S*2-1, S*2-1))
+        # ph,pw = pixpsf.shape
+        # padpsf[S/2:S/2+ph, S/2:S/2+pw] = pixpsf
+        # Fpsf = np.fft.rfft2(padpsf)
+        # 
+        # padh,padw = padpsf.shape
+        # v = np.fft.rfftfreq(padw)
+        # w = np.fft.fftfreq(padh)
+        # fmax = max(max(np.abs(v)), max(np.abs(w)))
+        # cut = fmax / 2. * 1.000001
+        # #print('Frequence cut:', cut)
+        # Ffiltpsf = Fpsf.copy()
+        # #print('Ffiltpsf', Ffiltpsf.shape)
+        # #print((np.abs(w) < cut).shape)
+        # #print((np.abs(v) < cut).shape)
+        # Ffiltpsf[np.abs(w) > cut, :] = 0.
+        # Ffiltpsf[:, np.abs(v) > cut] = 0.
+        # #print('pad v', v)
+        # #print('pad w', w)
+        # 
+        # filtpsf = np.fft.irfft2(Ffiltpsf, s=(padh,padw))
+        # 
+        # print('filtered PSF real', np.max(np.abs(filtpsf.real)))
+        # print('filtered PSF imag', np.max(np.abs(filtpsf.imag)))
+        # 
+        # plt.clf()
+        # plt.subplot(2,3,1)
+        # dimshow(Fpsf.real)
+        # plt.colorbar()
+        # plt.title('Padded PSF real')
+        # plt.subplot(2,3,4)
+        # dimshow(Fpsf.imag)
+        # plt.colorbar()
+        # plt.title('Padded PSF imag')
+        # 
+        # plt.subplot(2,3,2)
+        # dimshow(Ffiltpsf.real)
+        # plt.colorbar()
+        # plt.title('Filt PSF real')
+        # plt.subplot(2,3,5)
+        # dimshow(Ffiltpsf.imag)
+        # plt.colorbar()
+        # plt.title('Filt PSF imag')
+        # 
+        # plt.subplot(2,3,3)
+        # dimshow(filtpsf.real)
+        # plt.title('PSF real')
+        # plt.colorbar()
+        # 
+        # plt.subplot(2,3,6)
+        # dimshow(filtpsf.imag)
+        # plt.title('PSF imag')
+        # plt.colorbar()
+        # 
+        # ps.savefig()
+        # 
+        # 
+        # pixpsf = filtpsf
         
         
         gal_sigmas = [2, 1, 0.5, 0.25]
@@ -263,7 +346,6 @@ def main():
             # plt.savefig('g.png')
     
             # my convolution
-            from demo import galaxy_psf_convolution, GaussianGalaxy
             pixscale = 1.
             cd = pixscale * np.eye(2) / 3600.
             P,FG,Gmine,v,w = galaxy_psf_convolution(
@@ -293,6 +375,10 @@ def main():
             print('PSF*Gal L_2 in highest-frequency rows & cols:', l2_rmax, l2_cmax)
             print()
 
+            Fpsf, Fgal = compare_subsampled(
+                S, 1, ps, psf, pixpsf, Gmine,v,w,
+                gal_sigma, psf_sigma, cd, get_ffts=True, eval_psf=eval_psf)
+            
             plt.clf()
             plt.subplot(2,4,1)
             dimshow(P.real)
@@ -321,10 +407,6 @@ def main():
             plt.colorbar()
             plt.title('P*Gal imag')
 
-            Fpsf, Fgal = compare_subsampled(
-                S, 1, ps, psf, pixpsf, Gmine,
-                gal_sigma, psf_sigma, get_ffts=True)
-            
             plt.subplot(2,4,4)
             dimshow((Fgal).real)
             plt.colorbar()
@@ -337,13 +419,11 @@ def main():
             plt.suptitle('PSF %g, Gal %g' % (psf_sigma, gal_sigma))
 
             ps.savefig()
-            continue
-        
             
-            subsample = [1,2,3,4,5]
+            subsample = [1,2,4]
             rms1 = []
             for s in subsample:
-                rms = compare_subsampled(S, s, ps, psf, pixpsf, Gmine, gal_sigma, psf_sigma)
+                rms = compare_subsampled(S, s, ps, psf, pixpsf, Gmine,v,w, gal_sigma, psf_sigma, cd, eval_psf=eval_psf)
                 rms1.append(rms)
             rms2.append(rms1)
 
