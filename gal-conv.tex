@@ -217,7 +217,8 @@ We will elaborate on each step of the \trick\ below.  In summary:
   recording the frequencies $(v, w)$ of the FFT terms.
 \item Transform the mixture-of-Gaussians approximation of the model
   galaxy through an ellipticity matrix and the local image World
-  Coordinate System (WCS) matrix to get pixel-space Gaussians.
+  Coordinate System (WCS) matrix to get pixel-space Gaussians
+  (also including sub-pixel shifts).
 \item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space.
 \item Evaluate the Fourier-space Gaussians on the frequency grid $(v, w)$.
 \item Multiply the PSF and galaxy Fourier transforms and inverse-FFT
