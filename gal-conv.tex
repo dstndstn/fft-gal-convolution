@@ -63,8 +63,10 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 
 \begin{abstract}
   I present a \trick\ for the fast convolution of a model galaxy
-  profile by a point-spread function (PSF) model that can be
-  represented in the Fourier domain.  The \trick\ relies upon two
+  profile by a point-spread function (PSF) model 
+  %that can be represented in the Fourier domain.
+  represented as a pixel grid.
+  The \trick\ relies upon two
   observations: First, most simple galaxy profiles of common interest
   (deVaucouleurs, exponential, S\'ersic) can be approximated as
   mixtures of Gaussians.  Second, the Fourier transform of a Gaussian
@@ -450,9 +452,12 @@ illustrated in Figure \ref{fig:wrap}.
 
 \acknowledgements
 
-I thank Erin Sheldon (Brookhaven National Lab) for helpful discussion.
+I thank Erin Sheldon (BNL),
+David W.~Hogg (NYU) and David J.~Schlegel (LBL)
+for helpful discussion.
 
-The Dunlap Institute is funded through an endowment established by the David Dunlap family and the University of Toronto.
+The Dunlap Institute is funded through an endowment established by the
+David Dunlap family and the University of Toronto.
 
 
 
