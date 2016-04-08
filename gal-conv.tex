@@ -84,6 +84,12 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   approximation of the galaxy profile is exact) as long as the pixelized PSF
   is well sampled.
   %
+  This \trick\ can be seen as a way of applying a perfect low-pass filter to
+  the (typically strongly undersampled) galaxy profile before convolution by
+  the PSF, at exactly the Nyquist frequency of the PSF pixel model grid.  In
+  this way, it avoids the computational expense of a traditional super-resolution
+  approach.
+  %
   %Example code is available alongside the paper 
 \end{abstract}
 
