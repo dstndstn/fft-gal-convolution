@@ -78,6 +78,9 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   the efficient use of pixelized PSF models (ie, a PSF represented as
   a grid of pixel values) in galaxy model-fitting approaches such as
   \project{the Tractor}.
+  The \trick\ is fast and exact (to the extent that the mixture-of-Gaussians
+  approximation of the galaxy profile is exact) as long as the pixelized PSF
+  is well sampled.
   %
   %Example code is available alongside the paper 
 \end{abstract}
@@ -201,6 +204,9 @@ We can then multiply this Fourier-space
 representation of the galaxy by the Fourier transform of the pixelized
 PSF model, then inverse Fourier transform back to pixel space to get
 the PSF-convolved galaxy profile.
+%
+As long as the pixelized PSF model is well sampled, this method produces
+exact answers for each Gaussian in the mixture.
 
 We will elaborate on each step of the \trick\ below.  In summary:
 \begin{enumerate}
