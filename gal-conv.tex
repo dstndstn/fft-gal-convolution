@@ -216,43 +216,52 @@ this makes the computation expensive.
   \begin{center}
     \begin{tabular}{@{}c@{}c@{}c@{}c@{}c@{}}
       %
-      Pixel Space & & Fourier Space (Analytic) & & Fourier Space \\
+      Pixel Space & 
+      \rule{1ex}{0pt}
+      & Fourier Space (Analytic) & & Fourier Space \\
       %
       %\hline \\
       \cline{1-1} \cline{3-3} \cline{5-5}
       %
-      Step 1 & x & x & x & Step 2 \\
+      Step 1 &   &   &   & Step 2 \\
       %
-      PSF & x &
+      PSF &   &
       %$\Longrightarrow$FFT$\Longrightarrow$
-      x &
-      x &
+        &
+        &
       FFT(PSF) \\
       %
       % psf img
       \includegraphics[height=0.22\textwidth]{psf-00}%
-      & x & 
-      \raisebox{0.11\textwidth}{$\longrightarrow$ FFT $\longrightarrow$}
-      & x &
+      &   & 
+      %\raisebox{0.11\textwidth}{$-\negmedspace-$ FFT $\longrightarrow$}
+      \raisebox{0.11\textwidth}{%
+        $\xrightarrow{\text{\hspace{1em} FFT \hspace{1em}}}$
+      }%
+      &   &
       % psf FT
-      \multicolumn{1}{r}{%
+      %\multicolumn{1}{r}{%
+      \makebox[0.22\textwidth][r]{%
         \includegraphics[height=0.22\textwidth]{psf-01}%
       }
       \\
       %
-      x & x & x & x & $\times$ \\
+        &   &   &   & $\times$ \\
       %
-      x & x & Steps 3--4 & x & Step 5 \\
+        &   & Steps 3--4 &   & Step 5 \\
       %
-      \gray{Galaxy} & x &
-      Mixture of Gaussians & x &
+      \gray{Galaxy} &   &
+      Mixture of Gaussians &   &
       FT(Galaxy) \\
       %
       % gal img
       \includegraphics[height=0.22\textwidth]{psf-04}%
-      & x &
+      &   &
       % gal analytic FT ellipses
-      \multicolumn{1}{r}{%
+      %\multicolumn{1}{r}{%
+      %  \includegraphics[height=0.22\textwidth]{psf-06}%
+      %}%
+      \makebox[0.22\textwidth][r]{%
         \includegraphics[height=0.22\textwidth]{psf-06}%
       }%
       &
@@ -261,24 +270,31 @@ this makes the computation expensive.
       \
       &
       % gal FT
-      \multicolumn{1}{r}{%
+      %\multicolumn{1}{r}{%
+      \makebox[0.22\textwidth][r]{%
         \includegraphics[height=0.22\textwidth]{psf-02}%
       }
       \\
       %
-      Step 6 & x & x & x & $=$ \\
+      Step 6 &   &   &   & $=$ \\
       %
-      PSF $\conv$ Galaxy & x &
-      x & x &
+      PSF $\conv$ Galaxy &   &
+        &   &
       FT(PSF $\conv$ Galaxy) \\
       %
       % psf * gal img
       \includegraphics[height=0.22\textwidth]{psf-05}%
-      & x &
-      \raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \longleftarrow$}
-      & x &
+      &   &
+      %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \longleftarrow$}
+      %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \rule[1ex]{3ex}{1pt}$}
+      %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ -\negmedspace-$}
+      \raisebox{0.11\textwidth}{%
+        $\xleftarrow{\text{\hspace{1em} FFT$^{-1}$ \hspace{1em}}}$
+      }%
+      &   &
       % psf * gal FT
-      \multicolumn{1}{r}{%
+      %\multicolumn{1}{r}{%
+      \makebox[0.22\textwidth][r]{%
         \includegraphics[height=0.22\textwidth]{psf-03}%
       }
       \\
@@ -295,21 +311,25 @@ this makes the computation expensive.
     Illustration of the \trick.
     \textbf{Top-left}: pixelized PSF model (zoom-in of central region).
     %
-    \textbf{Bottom-left}: FFT of the pixelized PSF model.  Since the PSF model is
+    \textbf{Top-right}: 
+    FFT of the pixelized PSF model.  Since the PSF model is
     purely real, we show only half the symmetric Fourier transform. The FFT is
     complex; we show here the absolute value.
     % 
-    \textbf{Top-middle}: pixel-space galaxy profile (which would be
+    \textbf{Middle-left}: Pixel-space galaxy profile (which would be
     undersampled), with Gaussian ellipse approximations.  This is
     never evaluated in our method, and is shown only for illustration.
     % 
-    \textbf{Bottom-middle}: the discrete Fourier-space representation of the
+    \textbf{Middle}: The mixture-of-Gaussians galaxy approximation in
+    Fourier space.
+    %
+    \textbf{Middle-right}: The discrete Fourier-space representation of the
     galaxy profile, evaluated directly in Fourier space.
     %
-    \textbf{Bottom-right}: product of the FFT of the PSF and the
-    discrete Fourier transform of the galaxy model.
+    \textbf{Bottom-right}: Product of the FFT of the PSF and the
+    Fourier transform of the galaxy model.
     %
-    \textbf{Top-right}: the result: the galaxy model convolved by the
+    \textbf{Bottom-left}: The result: the galaxy model convolved by the
     PSF, in pixel space.  This is computed by inverse-FFT of the
     bottom-right panel.
   }
