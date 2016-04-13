@@ -166,8 +166,11 @@ def fft_plots(psfex, W, H, ps, ps2):
     psfim = psfim[T2:-T2,T2:-T2]
     ph,pw = psfim.shape
     cx,cy = pw/2, ph/2
-    egal = EllipseE.fromRAbPhi(3., 0.3, 135.)
+    #egal = EllipseE.fromRAbPhi(3., 0.3, 135.)
+    egal = EllipseE.fromRAbPhi(4., 0.3, 135.)
+    #egal = EllipseE.fromRAbPhi(5., 0.3, 135.)
     gal = ExpGalaxy(PixPos(cx,cy), Flux(100.), egal)
+    #gal = GaussianGalaxy(PixPos(cx,cy), Flux(100.), egal)
 
     ima = dict(ticks=False, cmap=antigray)
     #fima = dict(ticks=False, cmap='hot_r')
@@ -194,7 +197,7 @@ def fft_plots(psfex, W, H, ps, ps2):
     #print 'galaxy:', gal
     amix = gal._getAffineProfile(img, cx, cy)
     Fsum = amix.getFourierTransform(w, v)
-    
+
     print 'PSF FT'
     plt.figure(2)
     plt.clf()
@@ -258,6 +261,29 @@ def fft_plots(psfex, W, H, ps, ps2):
     ps.savefig()
 
 
+    # Fourier-space MoG:
+    plt.figure(2)
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)), **fima)
+    ax = plt.axis()
+    for k in range(amix.K):
+        print('Pixel-space variance:', amix.var[k,:,:])
+        Cinv = np.linalg.inv(amix.var[k,:,:])
+        print('Inverse:', Cinv)
+        Cinv *= (4. * np.pi**2)
+        e = EllipseE.fromCovariance(Cinv)
+        B = e.getRaDecBasis()
+        B *= 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        H,W = Fsum.real.shape
+        plt.plot(xx, H/2. + yy, 'r-', lw=2)
+    plt.axis(ax)
+    ps.savefig()
+    plt.figure(1)
 
     w,h = 32,32
 

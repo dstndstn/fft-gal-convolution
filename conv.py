@@ -437,8 +437,182 @@ def main():
                 
 
 if __name__ == '__main__':
-    main()
+    #main()
 
+    from tractor.psfex import *
+
+    psffn = '/Users/dstn/legacypipe-dir/calib/decam/psfex/00257/00257496/decam-00257496-N1.fits'
+    print('Reading PsfEx model from', psffn)
+    psf = PixelizedPsfEx(psffn)
+
+    cpsf = psf.constantPsfAt(1000,1000)
+
+    pixpsf = cpsf.img
+    ph,pw = pixpsf.shape
+
+    gal_re = 10.
+    
+    assert(ph == pw)
+    
+    ps = PlotSequence('conv')
+
+    plt.clf()
+    plt.imshow(pixpsf, interpolation='nearest', origin='lower')
+    ps.savefig()
+    
+    Fpsf = np.fft.rfft2(pixpsf)
+    
+    plt.clf()
+    plt.subplot(2,4,1)
+    dimshow(Fpsf.real)
+    plt.colorbar()
+    plt.title('PSF real')
+    plt.subplot(2,4,5)
+    dimshow(Fpsf.imag)
+    plt.colorbar()
+    plt.title('PSF imag')
+    ps.savefig()
+
+    # Subsample the PSF via resampling
+    from astrometry.util.util import lanczos_shift_image
+
+    scale = 2
+    sh,sw = ph*scale, pw*scale
+    subpixpsf = np.zeros((sh,sw))
+    for ix in np.arange(scale):
+        for iy in np.arange(scale):
+            dx = ix / float(scale)
+            dy = iy / float(scale)
+            if ix == 0 and iy == 0:
+                subpixpsf[0::scale, 0::scale] = pixpsf
+                continue
+            shift = lanczos_shift_image(pixpsf, -dx, -dy, order=5)
+            subpixpsf[iy::scale, ix::scale] = shift
+
+    # Evaluate a R_e = 1 pixel deVauc on the native pixel grid, using
+    # the Gaussian approximation
+    xx,yy = np.meshgrid(np.arange(pw), np.arange(ph))
+    center = pw/2
+    r2 = (xx - center)**2 + (yy - center)**2
+    pixgal = np.zeros_like(pixpsf)
+    
+    from demo import DevGalaxy
+    gal = DevGalaxy()
+    
+    for a,v in zip(gal.amp, gal.var):
+        vv = v * gal_re**2
+        ## FIXME ??? prefactors?
+        #pixgal += a * 1./np.sqrt(vv) * np.exp(-0.5 * r2 / vv)
+        pixgal += a * 1./vv * np.exp(-0.5 * r2 / vv)
+
+    subpixgal = np.zeros_like(subpixpsf)
+    xx,yy = np.meshgrid(np.arange(sw), np.arange(sh))
+    r2 = (xx/float(scale) - center)**2 + (yy/float(scale) - center)**2
+
+    for a,v in zip(gal.amp, gal.var):
+        ## FIXME ??? prefactors?
+        vv = v * gal_re**2
+        #subpixgal += a * 1./np.sqrt(vv) * np.exp(-0.5 * r2 / vv)
+        subpixgal += a * 1./vv * np.exp(-0.5 * r2 / vv)
+
+    plt.clf()
+    plt.loglog(r2[sh/2,:]+1, subpixgal[sh/2,:], 'b-')
+    ps.savefig()
+    
+    plt.clf()
+    plt.subplot(2,2,1)
+    plt.imshow(pixpsf, interpolation='nearest', origin='lower')
+    plt.subplot(2,2,2)
+    plt.imshow(subpixpsf, interpolation='nearest', origin='lower')
+
+    plt.subplot(2,2,3)
+    plt.imshow(pixgal, interpolation='nearest', origin='lower')
+    plt.subplot(2,2,4)
+    plt.imshow(subpixgal, interpolation='nearest', origin='lower')
+
+    ps.savefig()
+            
+    Fsub = np.fft.rfft2(subpixpsf)
+
+    Fgal = np.fft.rfft2(np.fft.ifftshift(pixgal))
+    Fsubgal = np.fft.rfft2(np.fft.ifftshift(subpixgal))
+    
+    plt.clf()
+    plt.subplot(2,4,1)
+    dimshow(Fpsf.real)
+    plt.colorbar()
+    plt.title('PSF real')
+    plt.subplot(2,4,5)
+    dimshow(Fpsf.imag)
+    plt.colorbar()
+    plt.title('PSF imag')
+
+    plt.subplot(2,4,2)
+    dimshow(Fsub.real)
+    plt.colorbar()
+    plt.title('SubPSF real')
+    plt.subplot(2,4,6)
+    dimshow(Fsub.imag)
+    plt.colorbar()
+    plt.title('SubPSF imag')
+
+    plt.subplot(2,4,3)
+    dimshow(Fgal.real)
+    plt.colorbar()
+    plt.title('pix Gal real')
+    plt.subplot(2,4,7)
+    dimshow(Fgal.imag)
+    plt.colorbar()
+    plt.title('pix Gal imag')
+
+    plt.subplot(2,4,4)
+    dimshow(Fsubgal.real)
+    plt.colorbar()
+    plt.title('subpix Gal real')
+    plt.subplot(2,4,8)
+    dimshow(Fsubgal.imag)
+    plt.colorbar()
+    plt.title('subpix Gal imag')
+    
+    ps.savefig()
+
+
+    pixconv = np.fft.irfft2(Fpsf * Fgal, s=pixpsf.shape)
+    subpixconv = np.fft.irfft2(Fsub * Fsubgal, s=subpixpsf.shape)
+
+    # my convolution
+    pixscale = 1.
+    cd = pixscale * np.eye(2) / 3600.
+    Gmine = galaxy_psf_convolution(gal_re, 0., 0., gal, cd,
+                                   0., 0., pixpsf)
+
+    pixconv /= np.sum(pixconv)
+    subpixconv /= np.sum(subpixconv)
+    subpixconv *= scale**2
+    Gmine /= np.sum(Gmine)
+    
+    plt.clf()
+    plt.subplot(1,3,1)
+    plt.imshow(pixconv, interpolation='nearest', origin='lower')
+    plt.subplot(1,3,2)
+    plt.imshow(subpixconv, interpolation='nearest', origin='lower')
+    plt.subplot(1,3,3)
+    plt.imshow(Gmine, interpolation='nearest', origin='lower')
+    ps.savefig()    
+
+    plt.clf()
+    plt.plot(np.arange(pw), pixconv[ph/2,:], 'b-')
+    plt.plot(np.arange(sw)/float(scale), subpixconv[sh/2,:], 'r-')
+    plt.plot(np.arange(pw), Gmine[ph/2,:], 'k-')
+    plt.plot(np.arange(pw), pixpsf[ph/2,:], 'g-')
+    ps.savefig()    
+
+    plt.yscale('log')
+    ps.savefig()    
+    
+
+    
+    
 
 '''
 
