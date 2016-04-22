@@ -141,37 +141,27 @@ that the PSF must be approximated as a mixture of Gaussians; in
 practice, it takes many Gaussians to achieve a good approximation, and
 this makes the computation expensive.
 
-% VERTICAL LAYOUT
-
 \begin{figure}
-  \newcommand{\arrowspacer}[1]{\left#1 \textrm{\rule[-0.5em]{0pt}{1em}} \right.}
   \begin{center}
-    \begin{tabular}{@{}c@{}c@{}c@{}c@{}c@{}}
+    \begin{tabular}{@{}c@{}c@{}c@{}}
       %
-      Pixel Space & 
-      \rule{1ex}{0pt}
-      & Fourier Space (Analytic) & & Fourier Space \\
+      Pixel Space
+      &
+      Fourier Space (Analytic)
+      &
+      Fourier Space \\
       %
-      %\hline \\
-      \cline{1-1} \cline{3-3} \cline{5-5}
+      \cline{1-1} \cline{2-2} \cline{3-3}
       %
-      %Step 1: Pixel space PSF &   &   &   & Step 2 \\
+      Step 1: PSF
+      &
       %
-      Step 1: PSF &   &
-      %$\Longrightarrow$FFT$\Longrightarrow$
-        &
-        &
+      &
       FFT(PSF) \\
       %
       % psf img
       \includegraphics[height=0.22\textwidth]{psf-00}%
-      &   & 
-      %\raisebox{0.11\textwidth}{$-\negmedspace-$ FFT $\longrightarrow$}
-      %
-      % \raisebox{0.11\textwidth}{%
-      %   $\xrightarrow{\displaystyle\textrm{\hspace{1em}
-      %       Step 2: FFT \hspace{1em}}}$
-      % }%
+      & 
       \makebox[0em][c]{
         \raisebox{0.11\textwidth}{%
           \hspace{2em}$\xrightarrow{\displaystyle\textrm{\hspace{1em}
@@ -179,7 +169,7 @@ this makes the computation expensive.
         }%
       }
       %
-      &   &
+      &
       % psf FT
       %\multicolumn{1}{r}{%
       \makebox[0.22\textwidth][r]{%
@@ -187,58 +177,40 @@ this makes the computation expensive.
       }
       \\
       %
-      %&   &   &   & $\times$ \\
-      %
-      Step 3: Galaxy MoG  &   & Step 4: FT(MoG) &   & Step 5: FT(Galaxy) \\
-      %
-      %\gray{Galaxy} &   &
-      %Mixture of Gaussians &   &
-      %FT(Galaxy) \\
+      Step 3: Galaxy MoG
+      &
+      Step 4: FT(MoG)
+      &
+      Step 5: FT(Galaxy) \\
       %
       % gal img
       \includegraphics[height=0.22\textwidth]{psf-08}%
-      & 
       &
-      % gal analytic FT ellipses
-      %\multicolumn{1}{r}{%
-      %  \includegraphics[height=0.22\textwidth]{psf-06}%
-      %}%
+      % gal analytic FT MoG
       \makebox[0.22\textwidth][r]{%
-        %\raisebox{0.11\textwidth}{\makebox[0ex][l]{$\longrightarrow$}}
-        \raisebox{0.11\textwidth}{$\longrightarrow$}
-        \hspace{1em}
+        \raisebox{0.11\textwidth}{$\longrightarrow$}%
+        \hspace{1em}%
         \includegraphics[height=0.22\textwidth]{psf-07}%
       }%
-      &
-      %\raisebox{0.11\textwidth}{$\rightarrow$}
-      \raisebox{0.11\textwidth}{\makebox[1ex][l]{%
+      \raisebox{0.11\textwidth}{\makebox[0ex][l]{%
           \hspace{1em}$\longrightarrow$}}
       \
       &
       % gal FT
-      %\multicolumn{1}{r}{%
       \makebox[0.22\textwidth][r]{%
         \includegraphics[height=0.22\textwidth]{psf-02}%
       }
       \\
       %
-      %Step 6 &   &   &   & $=$ \\
+      PSF $\conv$ Galaxy
+      &
       %
-      PSF $\conv$ Galaxy &   &
-        &   &
+      &
       FT(PSF $\conv$ Galaxy) \\
       %
       % psf * gal img
       \includegraphics[height=0.22\textwidth]{psf-05}%
-      &   &
-      %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \longleftarrow$}
-      %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \rule[1ex]{3ex}{1pt}$}
-      %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ -\negmedspace-$}
-      %
-       %\raisebox{0.11\textwidth}{%
-       %  $\xleftarrow{\displaystyle%
-       %    \textrm{\hspace{1em} Step 6: FFT$^{-1}$ \hspace{1em}}}$
-       %}%
+      &
       \makebox[0em][c]{
         \raisebox{0.11\textwidth}{%
           \hspace{2em}$\xleftarrow{\displaystyle%
@@ -246,20 +218,11 @@ this makes the computation expensive.
         }%
       }
       %
-      &   &
+      &
       % psf * gal FT
-      %\multicolumn{1}{r}{%
       \makebox[0.22\textwidth][r]{%
         \includegraphics[height=0.22\textwidth]{psf-03}%
       }
-      \\
-      %
-      %$\arrowspacer{\downarrow \mathcal{F}}$ && && $\arrowspacer{\uparrow \mathcal{F}^{-1}}$ \\
-      %FFT(PSF) & $\times$ & FT(Galaxy) & $=$ & FFT(PSF $\conv$ Galaxy) \\
-      %$\times$
-      %\multicolumn{1}{r}{%
-      % gal img
-      %\includegraphics[height=0.22\textwidth]{psf-12} &
     \end{tabular}
   \end{center}
   \caption{\label{fig:example}%
