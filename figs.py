@@ -381,266 +381,258 @@ def lopass(psfex, ps3):
     H,W = 256,256
 
 
-    for itheta,theta in enumerate([#90,100,
-                                   110,
-        #120,130,140,
-        ]):
-        print()
-        print('Theta', theta)
-        print()
+    theta = 110
+    psfim = psfex.instantiateAt(0,0)
 
-        psfim = psfex.instantiateAt(0,0)
-
-        T2 = 15
-        psfim = psfim[T2:-T2,T2:-T2]
-        ph,pw = psfim.shape
-        cx,cy = pw/2, ph/2
-        
-        egal = EllipseE.fromRAbPhi(4., 0.3, theta)
-        gal = ExpGalaxy(PixPos(0,0), Flux(100.), egal)
+    T2 = 15
+    psfim = psfim[T2:-T2,T2:-T2]
+    ph,pw = psfim.shape
+    cx,cy = pw/2, ph/2
     
-        pixpsf = PixelizedPSF(psfim)
-        halfsize = 10.
-        P,(px0,py0),(pH,pW),(w,v) = pixpsf.getFourierTransform(0., 0., halfsize)
+    egal = EllipseE.fromRAbPhi(4., 0.3, theta)
+    gal = ExpGalaxy(PixPos(0,0), Flux(100.), egal)
 
-        data=np.zeros((H,W), np.float32)
-        tinypsf = NCircularGaussianPSF([1e-6], [1.])
-        img = Image(data=data, invvar=np.ones_like(data), psf=tinypsf)
+    pixpsf = PixelizedPSF(psfim)
+    halfsize = 10.
+    P,(px0,py0),(pH,pW),(w,v) = pixpsf.getFourierTransform(0., 0., halfsize)
+
+    data=np.zeros((H,W), np.float32)
+    tinypsf = NCircularGaussianPSF([1e-6], [1.])
+    img = Image(data=data, invvar=np.ones_like(data), psf=tinypsf)
+
+    #amix = gal._getAffineProfile(img, cx, cy)
+    amix = gal._getAffineProfile(img, 0, 0)
+    Fsum = amix.getFourierTransform(w, v)
+
+    print('Amix amps:', amix.amp, 'sum', amix.amp.sum())
+
+    ima = dict(ticks=False, cmap=antigray)
+    fima = dict(ticks=False, cmap='Blues')
+    rima = dict(ticks=False, cmap='Greens')
+    iima = dict(ticks=False, cmap='Reds')
+
+    # Move galaxy to center of image.
+    gal.pos.x = pH/2.
+    gal.pos.y = pW/2.
+    print('tiny PSF conv galaxy')
+    print('pH,pW:', pH,pW)
+    tinyp = gal.getModelPatch(img)
+    #mod = np.zeros_like(psfim)
+    #tinyp.addTo(mod)
+    #tinymod = mod.copy()
+    tinypad = np.zeros((pH,pW))
+    tinyp.addTo(tinypad)
+
+    #print('w range:', np.min(w), np.max(w))
+    #print('v range:', np.min(v), np.max(v))
+    w2 = np.linspace(2.*np.min(w), 2.*np.max(w), len(w)*2-1)
+    v2 = np.linspace(2.*np.min(v), 2.*np.max(v), len(v)*2-1)
+    # print('w:', w)
+    # print('w2:', w2)
+    # print('v:', v)
+    # print('v2:', v2)
+    # [v2,w2]
+    Fsum2 = amix.getFourierTransform(w2, v2)
+
+    # print('w2', len(w2), 'v2', len(v2), 'Fsum2', Fsum2.shape)
+
+    I = np.flatnonzero((w2 >= np.min(w)) * (w2 <= np.max(w)))
+    J = np.flatnonzero((v2 >= np.min(v)) * (v2 <= np.max(v)))
+    # print('w', len(w), 'v', len(v), 'Fsum', Fsum.shape)
+    # print('I', len(I), 'J', len(J))
+
+    print('Sub-sum Fsum2:', Fsum2[J,:][:,I].real.sum())
+
+    # w3 = np.linspace(3.*np.min(w), 3.*np.max(w), len(w)*3-2)
+    # v3 = np.linspace(3.*np.min(v), 3.*np.max(v), len(v)*3-2)
+    # print('w:', w)
+    # print('w3:', w3)
+    # print('v:', v)
+    # print('v3:', v3)
+    # # [v2,w2]
+    # Fsum3 = amix.getFourierTransform(w3, v3)
+    # print('Fsum3.real sum', Fsum3.real.sum())
+    # 
+    # print('Folded Fsum3.real sum', Fsum3.real.sum() + Fsum3[:,1:].real.sum())
     
-        #amix = gal._getAffineProfile(img, cx, cy)
-        amix = gal._getAffineProfile(img, 0, 0)
-        Fsum = amix.getFourierTransform(w, v)
+    #print('amix:', amix)
+    #print('amix means:', amix.mean)
 
-        print('Amix amps:', amix.amp, 'sum', amix.amp.sum())
+    # My method, Fourier transform with twice the frequency range
+    plt.clf()
+    dimshow(np.hypot(Fsum2.real, Fsum2.imag), **fima)
+    ps3.savefig()
 
-        ima = dict(ticks=False, cmap=antigray)
-        fima = dict(ticks=False, cmap='Blues')
-        rima = dict(ticks=False, cmap='Greens')
-        iima = dict(ticks=False, cmap='Reds')
+    #for va in amix.var:
+    #    e = EllipseE.fromCovariance(va)
+    ax = plt.axis()
+    for k in range(amix.K):
+        Cinv = np.linalg.inv(amix.var[k,:,:])
+        Cinv *= (4. * np.pi**2)
+        e = EllipseE.fromCovariance(Cinv)
+        B = e.getRaDecBasis() * 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        f2H,f2W = Fsum2.shape
+        plt.plot(xx, f2H/2. + yy, 'r-', lw=2)
 
-        # Move galaxy to center of image.
-        gal.pos.x = pH/2.
-        gal.pos.y = pW/2.
-        print('tiny PSF conv galaxy')
-        print('pH,pW:', pH,pW)
-        tinyp = gal.getModelPatch(img)
-        #mod = np.zeros_like(psfim)
-        #tinyp.addTo(mod)
-        #tinymod = mod.copy()
-        tinypad = np.zeros((pH,pW))
-        tinyp.addTo(tinypad)
+        plt.plot(xx, 1.5 * f2H + yy, 'r--', lw=2)
+        plt.plot(xx, -0.5 * f2H + yy, 'r--', lw=2)
+
+    plt.axis(ax)
+    ps3.savefig()
     
-        #print('w range:', np.min(w), np.max(w))
-        #print('v range:', np.min(v), np.max(v))
-        w2 = np.linspace(2.*np.min(w), 2.*np.max(w), len(w)*2-1)
-        v2 = np.linspace(2.*np.min(v), 2.*np.max(v), len(v)*2-1)
-        # print('w:', w)
-        # print('w2:', w2)
-        # print('v:', v)
-        # print('v2:', v2)
-        # [v2,w2]
-        Fsum2 = amix.getFourierTransform(w2, v2)
+    # plt.clf()
+    # dimshow(Fsum2.real, **rima)
+    # print('Real range:', Fsum2.real.min(), Fsum2.real.max())
+    # ps3.savefig()
+    # plt.clf()
+    # dimshow(Fsum2.imag, **iima)
+    # print('Imag range:', Fsum2.imag.min(), Fsum2.imag.max())
+    # ps3.savefig()
 
-        # print('w2', len(w2), 'v2', len(v2), 'Fsum2', Fsum2.shape)
+    print('Fsum2.real sum', Fsum2.real.sum())
+    print('Fsum.real sum', Fsum.real.sum())
 
-        I = np.flatnonzero((w2 >= np.min(w)) * (w2 <= np.max(w)))
-        J = np.flatnonzero((v2 >= np.min(v)) * (v2 <= np.max(v)))
-        # print('w', len(w), 'v', len(v), 'Fsum', Fsum.shape)
-        # print('I', len(I), 'J', len(J))
+    # plt.clf()
+    # dimshow(tinypad, **ima)
+    # ps3.savefig()
+    # 
+    # Rotated to be zero-centered.
+    tinypad2 = np.fft.fftshift(tinypad)
+    # plt.clf()
+    # dimshow(tinypad2, **ima)
+    # ps3.savefig()
+    # 
+    # my = np.fft.irfft2(Fsum, s=(pH,pW))
+    # plt.clf()
+    # dimshow(my, **ima)
+    # ps3.savefig()
 
-        print('Sub-sum Fsum2:', Fsum2[J,:][:,I].real.sum())
+    # Galaxy conv tiny PSF
+    #Ftiny = np.fft.rfft2(tinypad)
+    Ftiny = np.fft.rfft2(tinypad2)
+    #print('Tinypad shape', tinypad.shape)
+    tH,tW = tinypad.shape
+    Ftiny /= (tH * np.pi)
 
-        # w3 = np.linspace(3.*np.min(w), 3.*np.max(w), len(w)*3-2)
-        # v3 = np.linspace(3.*np.min(v), 3.*np.max(v), len(v)*3-2)
-        # print('w:', w)
-        # print('w3:', w3)
-        # print('v:', v)
-        # print('v3:', v3)
-        # # [v2,w2]
-        # Fsum3 = amix.getFourierTransform(w3, v3)
-        # print('Fsum3.real sum', Fsum3.real.sum())
-        # 
-        # print('Folded Fsum3.real sum', Fsum3.real.sum() + Fsum3[:,1:].real.sum())
-        
-        #print('amix:', amix)
-        #print('amix means:', amix.mean)
-    
-        if itheta == 0:
-            # My method, Fourier transform with twice the frequency range
-            plt.clf()
-            dimshow(np.hypot(Fsum2.real, Fsum2.imag), **fima)
-            ps3.savefig()
+    print('Ftiny.real sum', Ftiny.real.sum())
 
-            #for va in amix.var:
-            #    e = EllipseE.fromCovariance(va)
-            ax = plt.axis()
-            for k in range(amix.K):
-                Cinv = np.linalg.inv(amix.var[k,:,:])
-                Cinv *= (4. * np.pi**2)
-                e = EllipseE.fromCovariance(Cinv)
-                B = e.getRaDecBasis() * 3600.
-                angle = np.linspace(0, 2.*np.pi, 90)
-                cc = np.cos(angle)
-                ss = np.sin(angle)
-                xx = B[0,0] * cc + B[0,1] * ss
-                yy = B[1,0] * cc + B[1,1] * ss
-                f2H,f2W = Fsum2.shape
-                plt.plot(xx, f2H/2. + yy, 'r-', lw=2)
+    #print('Folded Ftiny.real sum', Ftiny.real.sum() + Ftiny[:,1:].real.sum())
 
-                plt.plot(xx, 1.5 * f2H + yy, 'r--', lw=2)
-                plt.plot(xx, -0.5 * f2H + yy, 'r--', lw=2)
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
+            vmin=0, vmax=1.1, **fima)
+    plt.colorbar()
+    ps3.savefig()
 
-            plt.axis(ax)
-            ps3.savefig()
-            
-            # plt.clf()
-            # dimshow(Fsum2.real, **rima)
-            # print('Real range:', Fsum2.real.min(), Fsum2.real.max())
-            # ps3.savefig()
-            # plt.clf()
-            # dimshow(Fsum2.imag, **iima)
-            # print('Imag range:', Fsum2.imag.min(), Fsum2.imag.max())
-            # ps3.savefig()
+    # Ftiny2 = np.fft.fft2(tinypad2)
+    # Ftiny2 /= (tH * np.pi)
+    # print('Ftiny2.real sum', Ftiny2.real.sum())
+    # 
+    # plt.clf()
+    # dimshow(np.fft.fftshift(np.hypot(Ftiny2.real, Ftiny2.imag)),
+    #         **fima)
+    # plt.colorbar()
+    # ps3.savefig()
 
-        print('Fsum2.real sum', Fsum2.real.sum())
-        print('Fsum.real sum', Fsum.real.sum())
+    # plt.clf()
+    # dimshow(np.fft.fftshift(Ftiny.real, axes=(0,)), **rima)
+    # ps3.savefig()
+    # plt.clf()
+    # dimshow(np.fft.fftshift(Ftiny.imag, axes=(0,)), **iima)
+    # ps3.savefig()
+    print('Ftiny Real range:', Ftiny.real.min(), Ftiny.real.max())
+    print('Ftiny Imag range:', Ftiny.imag.min(), Ftiny.imag.max())
 
-        # plt.clf()
-        # dimshow(tinypad, **ima)
-        # ps3.savefig()
-        # 
-        # Rotated to be zero-centered.
-        tinypad2 = np.fft.fftshift(tinypad)
-        # plt.clf()
-        # dimshow(tinypad2, **ima)
-        # ps3.savefig()
-        # 
-        # my = np.fft.irfft2(Fsum, s=(pH,pW))
-        # plt.clf()
-        # dimshow(my, **ima)
-        # ps3.savefig()
+    # Mine, at regular frequencies
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
+            vmin=0, vmax=1.1, **fima)
+    plt.colorbar()
+    ps3.savefig()
 
-        # Galaxy conv tiny PSF
-        #Ftiny = np.fft.rfft2(tinypad)
-        Ftiny = np.fft.rfft2(tinypad2)
-        #print('Tinypad shape', tinypad.shape)
-        tH,tW = tinypad.shape
-        Ftiny /= (tH * np.pi)
-    
-        print('Ftiny.real sum', Ftiny.real.sum())
+    # plt.clf()
+    # dimshow(np.fft.fftshift(Fsum.real, axes=(0,)), **rima)
+    # ps3.savefig()
+    # 
+    # plt.clf()
+    # dimshow(np.fft.fftshift(Fsum.imag, axes=(0,)), **iima)
+    # ps3.savefig()
 
-        #print('Folded Ftiny.real sum', Ftiny.real.sum() + Ftiny[:,1:].real.sum())
-
-        plt.clf()
-        dimshow(np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
-                vmin=0, vmax=1.1, **fima)
-        plt.colorbar()
-        ps3.savefig()
-
-        # Ftiny2 = np.fft.fft2(tinypad2)
-        # Ftiny2 /= (tH * np.pi)
-        # print('Ftiny2.real sum', Ftiny2.real.sum())
-        # 
-        # plt.clf()
-        # dimshow(np.fft.fftshift(np.hypot(Ftiny2.real, Ftiny2.imag)),
-        #         **fima)
-        # plt.colorbar()
-        # ps3.savefig()
-
-        # plt.clf()
-        # dimshow(np.fft.fftshift(Ftiny.real, axes=(0,)), **rima)
-        # ps3.savefig()
-        # plt.clf()
-        # dimshow(np.fft.fftshift(Ftiny.imag, axes=(0,)), **iima)
-        # ps3.savefig()
-        print('Ftiny Real range:', Ftiny.real.min(), Ftiny.real.max())
-        print('Ftiny Imag range:', Ftiny.imag.min(), Ftiny.imag.max())
-
-        # Mine, at regular frequencies
-        plt.clf()
-        dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
-                vmin=0, vmax=1.1, **fima)
-        plt.colorbar()
-        ps3.savefig()
-
-        # plt.clf()
-        # dimshow(np.fft.fftshift(Fsum.real, axes=(0,)), **rima)
-        # ps3.savefig()
-        # 
-        # plt.clf()
-        # dimshow(np.fft.fftshift(Fsum.imag, axes=(0,)), **iima)
-        # ps3.savefig()
-
-        print('Fsum Real range:', Fsum.real.min(), Fsum.real.max())
-        print('Fsum Imag range:', Fsum.imag.min(), Fsum.imag.max())
-
-    
-        plt.clf()
-        dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fsum.real,
-                                         Ftiny.imag - Fsum.imag), axes=(0,)), **fima)
-        plt.colorbar()
-        ps3.savefig()
+    print('Fsum Real range:', Fsum.real.min(), Fsum.real.max())
+    print('Fsum Imag range:', Fsum.imag.min(), Fsum.imag.max())
 
 
-        # plt.clf()
-        # dimshow(np.fft.fftshift(Ftiny.real - Fsum.real, axes=(0,)), **rima)
-        # ps3.savefig()
-        # 
-        # plt.clf()
-        # dimshow(np.fft.fftshift(Ftiny.imag - Fsum.imag, axes=(0,)), **iima)
-        # ps3.savefig()
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fsum.real,
+                                     Ftiny.imag - Fsum.imag), axes=(0,)), **fima)
+    plt.colorbar()
+    ps3.savefig()
 
-        diff = Ftiny - Fsum
-        print('diff Real range:', diff.real.min(), diff.real.max())
-        print('diff Imag range:', diff.imag.min(), diff.imag.max())
 
-        print('Fsum sum:', np.hypot(Fsum.real, Fsum.imag).sum())
-        print('Ftiny sum:', np.hypot(Ftiny.real, Ftiny.imag).sum())
+    # plt.clf()
+    # dimshow(np.fft.fftshift(Ftiny.real - Fsum.real, axes=(0,)), **rima)
+    # ps3.savefig()
+    # 
+    # plt.clf()
+    # dimshow(np.fft.fftshift(Ftiny.imag - Fsum.imag, axes=(0,)), **iima)
+    # ps3.savefig()
 
-        ax = plt.axis()
-        ## HACK -- 5th contour is confusing-looking
-        for k in range(2, amix.K):
-            Cinv = np.linalg.inv(amix.var[k,:,:])
-            Cinv *= (4. * np.pi**2)
-            e = EllipseE.fromCovariance(Cinv)
-            B = e.getRaDecBasis() * 3600.
-            angle = np.linspace(0, 2.*np.pi, 90)
-            cc = np.cos(angle)
-            ss = np.sin(angle)
-            xx = B[0,0] * cc + B[0,1] * ss
-            yy = B[1,0] * cc + B[1,1] * ss
-            fsH,fsW = Fsum.shape
-            plt.plot(xx, fsH/2. + yy, 'r-', lw=2)
+    diff = Ftiny - Fsum
+    print('diff Real range:', diff.real.min(), diff.real.max())
+    print('diff Imag range:', diff.imag.min(), diff.imag.max())
 
-            plt.plot(xx, 1.5 * fsH + yy, 'r--', lw=2)
-            plt.plot(xx, -0.5 * fsH + yy, 'r--', lw=2)
-        plt.axis(ax)
-        ps3.savefig()
-    
+    print('Fsum sum:', np.hypot(Fsum.real, Fsum.imag).sum())
+    print('Ftiny sum:', np.hypot(Ftiny.real, Ftiny.imag).sum())
 
-        plt.clf()
-        dimshow(np.log10(np.maximum(
-            np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
-            1e-6)),
-            vmin=-3, vmax=0, **fima)
-        plt.colorbar()
-        ps3.savefig()
+    ax = plt.axis()
+    ## HACK -- 5th contour is confusing-looking
+    for k in range(2, amix.K):
+        Cinv = np.linalg.inv(amix.var[k,:,:])
+        Cinv *= (4. * np.pi**2)
+        e = EllipseE.fromCovariance(Cinv)
+        B = e.getRaDecBasis() * 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        fsH,fsW = Fsum.shape
+        plt.plot(xx, fsH/2. + yy, 'r-', lw=2)
 
-        plt.clf()
-        dimshow(np.log10(np.maximum(
-            np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
-            1e-6)),
-            vmin=-3, vmax=0, **fima)
-        plt.colorbar()
-        ps3.savefig()
+        plt.plot(xx, 1.5 * fsH + yy, 'r--', lw=2)
+        plt.plot(xx, -0.5 * fsH + yy, 'r--', lw=2)
+    plt.axis(ax)
+    ps3.savefig()
 
-        plt.clf()
-        dimshow(np.log10(np.maximum(
-            np.hypot(Fsum2.real, Fsum2.imag),
-            1e-6)),
-            vmin=-3, vmax=0, **fima)
-        plt.colorbar()
-        ps3.savefig()
+
+    plt.clf()
+    dimshow(np.log10(np.maximum(
+        np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
+        1e-6)),
+        vmin=-3, vmax=0, **fima)
+    plt.colorbar()
+    ps3.savefig()
+
+    plt.clf()
+    dimshow(np.log10(np.maximum(
+        np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
+        1e-6)),
+        vmin=-3, vmax=0, **fima)
+    plt.colorbar()
+    ps3.savefig()
+
+    plt.clf()
+    dimshow(np.log10(np.maximum(
+        np.hypot(Fsum2.real, Fsum2.imag),
+        1e-6)),
+        vmin=-3, vmax=0, **fima)
+    plt.colorbar()
+    ps3.savefig()
         
 
 
