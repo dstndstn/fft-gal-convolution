@@ -157,9 +157,11 @@ def gmm_plots(psfex, W, H, ps):
 
 ##############################################
 
-def fft_plots(psfex, W, H, ps, ps2):
+def fft_plots(psfex, W, H, ps, ps2, ps3):
+
+    H,W = 256,256
     
-    psfim = psfex.instantiateAt(W, H)
+    psfim = psfex.instantiateAt(0,0)
     mx = psfim.max()
     
     T2 = 15
@@ -226,17 +228,20 @@ def fft_plots(psfex, W, H, ps, ps2):
     print 'tiny PSF conv galaxy'
     mod = np.zeros_like(psfim)
     tinyp.addTo(mod)
+    tinymod = mod.copy()
+
+    tinypad = np.zeros((pH,pW))
+    tinyp.addTo(tinypad)
     
     plt.figure(1)
     
     # unconvolved galaxy image
     plt.clf()
     dimshow(mod, **ima)
-    
     ax = plt.axis()
-    for v in amix.var:
+    for va in amix.var:
         # print 'variance', v
-        e = EllipseE.fromCovariance(v)
+        e = EllipseE.fromCovariance(va)
         B = e.getRaDecBasis()
         # print 'B', B
         B *= 3600.
@@ -248,6 +253,7 @@ def fft_plots(psfex, W, H, ps, ps2):
         plt.plot(cx + xx, cy + yy, 'r-', lw=2)
     plt.axis(ax)
     ps.savefig()
+    gal_pix_ax = ax
     
     img.psf = pixpsf
     p = gal.getModelPatch(img)
@@ -283,8 +289,95 @@ def fft_plots(psfex, W, H, ps, ps2):
         plt.plot(xx, H/2. + yy, 'r-', lw=2)
     plt.axis(ax)
     ps.savefig()
+
+    # Just the galaxy MoG in Fourier space, no background image
+    plt.clf()
+    plt.axhline(H/2., color='k', alpha=0.3)
+    plt.axvline(0, color='k', alpha=0.3)
+    for k in range(amix.K):
+        Cinv = 4. * np.pi**2 * np.linalg.inv(amix.var[k,:,:])
+        e = EllipseE.fromCovariance(Cinv)
+        B = e.getRaDecBasis() * 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        H,W = Fsum.real.shape
+        plt.plot(xx, H/2. + yy, 'r-', lw=2)
+    plt.axis(ax)
+    plt.xticks([])
+    plt.yticks([])
+    ps.savefig()
     plt.figure(1)
 
+
+    # Pixel-space galaxy MoG
+    plt.clf()
+    plt.axhline(cy, color='k', alpha=0.3)
+    plt.axvline(cx, color='k', alpha=0.3)
+    for va in amix.var:
+        e = EllipseE.fromCovariance(va)
+        B = e.getRaDecBasis() * 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        plt.plot(cx + xx, cy + yy, 'r-', lw=2)
+    plt.axis(gal_pix_ax)
+    plt.xticks([])
+    plt.yticks([])
+    ps.savefig()
+
+
+    
+
+    ### Lopass
+    plt.figure(2)
+
+    print('w range:', np.min(w), np.max(w))
+    print('v range:', np.min(v), np.max(v))
+    w2 = np.linspace(2.*np.min(w), 2.*np.max(w), len(w)*2-1)
+    v2 = np.linspace(2.*np.min(v), 2.*np.max(v), len(v)*2-1)
+    print('w:', w)
+    print('w2:', w2)
+    print('v:', v)
+    print('v2:', v2)
+    Fsum2 = amix.getFourierTransform(w2, v2)
+
+    plt.clf()
+    dimshow(np.hypot(Fsum2.real, Fsum2.imag), **fima)
+    ps3.savefig()
+
+    print('Fsum2.real sum', Fsum2.real.sum())
+
+    print('Fsum.real sum', Fsum.real.sum())
+
+    Ftiny = np.fft.rfft2(tinypad)
+    print('Tinypad shape', tinypad.shape)
+    tH,tW = tinypad.shape
+    Ftiny /= (tH * np.pi)
+
+    
+    print('Ftiny.real sum', Ftiny.real.sum())
+    
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)), **fima)
+    ps3.savefig()
+
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)), **fima)
+    ps3.savefig()
+
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fsum.real,
+                                     Ftiny.imag - Fsum.imag), axes=(0,)), **fima)
+    ps3.savefig()
+    
+
+    plt.figure(1)
+    
     w,h = 32,32
 
     egal = EllipseE.fromRAbPhi(20., 0.1, 115.)
@@ -322,36 +415,45 @@ def fft_plots(psfex, W, H, ps, ps2):
     dimshow(mod, **ima)
     ps2.savefig()
 
+
+
+
+
+
+    
+
+
+if __name__ == '__main__':
         
-psffn = 'decam-00348226-N18.fits'
-
-W,H = 2048,4096
-psfex = PsfEx(psffn, W, H)
-
-ps = PlotSequence('psf', suffixes=['pdf'])
-ps2 = PlotSequence('gal', suffixes=['pdf'])
-
-
-plt.figure(1, figsize=(3,3))
-margin = 0.01
-#plt.subplots_adjust(left=margin, right=1.-margin, bottom=margin, top=1.-margin,
-#                    hspace=0, wspace=0)
-plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
-#plt.figure(2, figsize=(1.5,3))
-frac = 17./32
-plt.figure(2, figsize=(frac * 3,3))
-# plt.subplots_adjust(left=margin/frac, right=1 - margin/frac,
-#                     bottom=margin, top=1.-margin,
-#                     hspace=0, wspace=0)
-plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
-
-plt.figure(3, figsize=(6,3))
-plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
-
-
-plt.figure(1)
-
-fft_plots(psfex, W, H, ps, ps2)
+    psffn = 'decam-00348226-N18.fits'
+    
+    W,H = 2048,4096
+    psfex = PsfEx(psffn, W, H)
+    
+    ps = PlotSequence('psf', suffixes=['pdf'])
+    ps2 = PlotSequence('gal', suffixes=['pdf'])
+    ps3 = PlotSequence('lopass', suffixes=['pdf'])
+    
+    plt.figure(1, figsize=(3,3))
+    margin = 0.01
+    #plt.subplots_adjust(left=margin, right=1.-margin, bottom=margin, top=1.-margin,
+    #                    hspace=0, wspace=0)
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+    #plt.figure(2, figsize=(1.5,3))
+    frac = 17./32
+    plt.figure(2, figsize=(frac * 3,3))
+    # plt.subplots_adjust(left=margin/frac, right=1 - margin/frac,
+    #                     bottom=margin, top=1.-margin,
+    #                     hspace=0, wspace=0)
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+    
+    plt.figure(3, figsize=(6,3))
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+    
+    
+    plt.figure(1)
+    
+    fft_plots(psfex, W, H, ps, ps2, ps3)
 
     
 # plt.clf()

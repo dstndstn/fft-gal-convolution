@@ -223,9 +223,9 @@ this makes the computation expensive.
       %\hline \\
       \cline{1-1} \cline{3-3} \cline{5-5}
       %
-      Step 1 &   &   &   & Step 2 \\
+      %Step 1: Pixel space PSF &   &   &   & Step 2 \\
       %
-      PSF &   &
+      Step 1: PSF &   &
       %$\Longrightarrow$FFT$\Longrightarrow$
         &
         &
@@ -235,9 +235,18 @@ this makes the computation expensive.
       \includegraphics[height=0.22\textwidth]{psf-00}%
       &   & 
       %\raisebox{0.11\textwidth}{$-\negmedspace-$ FFT $\longrightarrow$}
-      \raisebox{0.11\textwidth}{%
-        $\xrightarrow{\text{\hspace{1em} FFT \hspace{1em}}}$
-      }%
+      %
+      % \raisebox{0.11\textwidth}{%
+      %   $\xrightarrow{\displaystyle\textrm{\hspace{1em}
+      %       Step 2: FFT \hspace{1em}}}$
+      % }%
+      \makebox[0em][c]{
+        \raisebox{0.11\textwidth}{%
+          \hspace{2em}$\xrightarrow{\displaystyle\textrm{\hspace{1em}
+              Step 2: FFT \hspace{1em}}}$
+        }%
+      }
+      %
       &   &
       % psf FT
       %\multicolumn{1}{r}{%
@@ -246,27 +255,32 @@ this makes the computation expensive.
       }
       \\
       %
-        &   &   &   & $\times$ \\
+      %&   &   &   & $\times$ \\
       %
-        &   & Steps 3--4 &   & Step 5 \\
+      Step 3: Galaxy MoG  &   & Step 4: FT(MoG) &   & Step 5: FT(Galaxy) \\
       %
-      \gray{Galaxy} &   &
-      Mixture of Gaussians &   &
-      FT(Galaxy) \\
+      %\gray{Galaxy} &   &
+      %Mixture of Gaussians &   &
+      %FT(Galaxy) \\
       %
       % gal img
-      \includegraphics[height=0.22\textwidth]{psf-04}%
-      &   &
+      \includegraphics[height=0.22\textwidth]{psf-08}%
+      & 
+      &
       % gal analytic FT ellipses
       %\multicolumn{1}{r}{%
       %  \includegraphics[height=0.22\textwidth]{psf-06}%
       %}%
       \makebox[0.22\textwidth][r]{%
-        \includegraphics[height=0.22\textwidth]{psf-06}%
+        %\raisebox{0.11\textwidth}{\makebox[0ex][l]{$\longrightarrow$}}
+        \raisebox{0.11\textwidth}{$\longrightarrow$}
+        \hspace{1em}
+        \includegraphics[height=0.22\textwidth]{psf-07}%
       }%
       &
       %\raisebox{0.11\textwidth}{$\rightarrow$}
-      \raisebox{0.11\textwidth}{\makebox[1ex][l]{$\longrightarrow$}}
+      \raisebox{0.11\textwidth}{\makebox[1ex][l]{%
+          \hspace{1em}$\longrightarrow$}}
       \
       &
       % gal FT
@@ -276,7 +290,7 @@ this makes the computation expensive.
       }
       \\
       %
-      Step 6 &   &   &   & $=$ \\
+      %Step 6 &   &   &   & $=$ \\
       %
       PSF $\conv$ Galaxy &   &
         &   &
@@ -288,9 +302,18 @@ this makes the computation expensive.
       %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \longleftarrow$}
       %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ \rule[1ex]{3ex}{1pt}$}
       %\raisebox{0.11\textwidth}{$\longleftarrow$ FFT$^{-1}$ $ -\negmedspace-$}
-      \raisebox{0.11\textwidth}{%
-        $\xleftarrow{\text{\hspace{1em} FFT$^{-1}$ \hspace{1em}}}$
-      }%
+      %
+       %\raisebox{0.11\textwidth}{%
+       %  $\xleftarrow{\displaystyle%
+       %    \textrm{\hspace{1em} Step 6: FFT$^{-1}$ \hspace{1em}}}$
+       %}%
+      \makebox[0em][c]{
+        \raisebox{0.11\textwidth}{%
+          \hspace{2em}$\xleftarrow{\displaystyle%
+            \textrm{\hspace{1em} Step 6: FFT$^{-1}$ \hspace{1em}}}$
+        }%
+      }
+      %
       &   &
       % psf * gal FT
       %\multicolumn{1}{r}{%
@@ -316,9 +339,9 @@ this makes the computation expensive.
     purely real, we show only half the symmetric Fourier transform. The FFT is
     complex; we show here the absolute value.
     % 
-    \textbf{Middle-left}: Pixel-space galaxy profile (which would be
-    undersampled), with Gaussian ellipse approximations.  This is
-    never evaluated in our method, and is shown only for illustration.
+    \textbf{Middle-left}: Pixel-space galaxy profile,
+    Mixture-of-Gaussians (MoG) approximation.  The profile would be
+    undersampled if evaluated in pixel space.
     % 
     \textbf{Middle}: The mixture-of-Gaussians galaxy approximation in
     Fourier space.
