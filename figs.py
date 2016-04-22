@@ -417,9 +417,6 @@ def lopass(psfex, ps3):
     print('tiny PSF conv galaxy')
     print('pH,pW:', pH,pW)
     tinyp = gal.getModelPatch(img)
-    #mod = np.zeros_like(psfim)
-    #tinyp.addTo(mod)
-    #tinymod = mod.copy()
     tinypad = np.zeros((pH,pW))
     tinyp.addTo(tinypad)
 
@@ -636,7 +633,76 @@ def lopass(psfex, ps3):
         
 
 
+
+    # Subsample the PSF via resampling
+    from astrometry.util.util import lanczos_shift_image
+
+    scale = 2
+    sh,sw = ph*scale, pw*scale
+    subpsfim = np.zeros((sh,sw))
+    for ix in np.arange(scale):
+        for iy in np.arange(scale):
+            dx = ix / float(scale)
+            dy = iy / float(scale)
+            if ix == 0 and iy == 0:
+                subpsfim[0::scale, 0::scale] = psfim
+                continue
+            shift = lanczos_shift_image(psfim, -dx, -dy, order=5)
+            subpsfim[iy::scale, ix::scale] = shift
+
+    plt.clf()
+    plt.subplot(1,2,1)
+    dimshow(psfim)
+    plt.subplot(1,2,2)
+    dimshow(subpsfim)
+    ps3.savefig()
+    
+
+
+    wcs = NullWCS()
+    wcs.pixscale /= scale
+    print('subsampling image: set pixscale', wcs.pixscale)
+    print('WCS:', wcs)
+    
+    subdata=np.zeros((scale*H,scale*W), np.float32)
+    subimg = Image(data=subdata, invvar=np.ones_like(subdata), psf=tinypsf,
+                   wcs=wcs)
+
+    # Move galaxy to center of image.
+    gal.pos.x = scale*pH/2.
+    gal.pos.y = scale*pW/2.
+    
+    subtinyp = gal.getModelPatch(subimg)
+    subtinypad = np.zeros((scale*pH,scale*pW))
+    subtinyp.addTo(subtinypad)
+    # Rotated to be zero-centered.
+    subtinypad2 = np.fft.fftshift(subtinypad)
+    
+    plt.clf()
+    dimshow(subtinypad2, **ima)
+    plt.title('subtinypad2')
+    ps3.savefig()
+
+    plt.clf()
+    dimshow(tinypad2, **ima)
+    plt.title('tinypad2')
+    ps3.savefig()
+    
+    Fsub = np.fft.rfft2(subtinypad2)
+    tH,tW = subtinypad.shape
+    Fsub /= (tH * np.pi)
+
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Fsub.real, Fsub.imag), axes=(0,)),
+            vmin=0, vmax=1.1, **fima)
+    plt.colorbar()
+    plt.title('Fsub')
+    ps3.savefig()
+    
 def main():
+    # !!important!!
+    disable_galaxy_cache()
+
     psffn = 'decam-00348226-N18.fits'
     
     W,H = 2048,4096
