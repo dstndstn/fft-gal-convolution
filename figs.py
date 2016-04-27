@@ -402,7 +402,7 @@ def lopass(psfex, ps3):
 
     #amix = gal._getAffineProfile(img, cx, cy)
     amix = gal._getAffineProfile(img, 0, 0)
-    Fsum = amix.getFourierTransform(w, v)
+    Fmine = amix.getFourierTransform(w, v)
 
     print('Amix amps:', amix.amp, 'sum', amix.amp.sum())
 
@@ -429,16 +429,16 @@ def lopass(psfex, ps3):
     # print('v:', v)
     # print('v2:', v2)
     # [v2,w2]
-    Fsum2 = amix.getFourierTransform(w2, v2)
+    Fmine2 = amix.getFourierTransform(w2, v2)
 
-    # print('w2', len(w2), 'v2', len(v2), 'Fsum2', Fsum2.shape)
+    # print('w2', len(w2), 'v2', len(v2), 'Fmine2', Fmine2.shape)
 
     I = np.flatnonzero((w2 >= np.min(w)) * (w2 <= np.max(w)))
     J = np.flatnonzero((v2 >= np.min(v)) * (v2 <= np.max(v)))
-    # print('w', len(w), 'v', len(v), 'Fsum', Fsum.shape)
+    # print('w', len(w), 'v', len(v), 'Fmine', Fmine.shape)
     # print('I', len(I), 'J', len(J))
 
-    print('Sub-sum Fsum2:', Fsum2[J,:][:,I].real.sum())
+    print('Sub-sum Fmine2:', Fmine2[J,:][:,I].real.sum())
 
     # w3 = np.linspace(3.*np.min(w), 3.*np.max(w), len(w)*3-2)
     # v3 = np.linspace(3.*np.min(v), 3.*np.max(v), len(v)*3-2)
@@ -447,17 +447,18 @@ def lopass(psfex, ps3):
     # print('v:', v)
     # print('v3:', v3)
     # # [v2,w2]
-    # Fsum3 = amix.getFourierTransform(w3, v3)
-    # print('Fsum3.real sum', Fsum3.real.sum())
+    # Fmine3 = amix.getFourierTransform(w3, v3)
+    # print('Fmine3.real sum', Fmine3.real.sum())
     # 
-    # print('Folded Fsum3.real sum', Fsum3.real.sum() + Fsum3[:,1:].real.sum())
+    # print('Folded Fmine3.real sum', Fmine3.real.sum() + Fmine3[:,1:].real.sum())
     
     #print('amix:', amix)
     #print('amix means:', amix.mean)
 
     # My method, Fourier transform with twice the frequency range
     plt.clf()
-    dimshow(np.hypot(Fsum2.real, Fsum2.imag), **fima)
+    dimshow(np.hypot(Fmine2.real, Fmine2.imag), **fima)
+    plt.title('Fmine2')
     ps3.savefig()
 
     #for va in amix.var:
@@ -473,7 +474,7 @@ def lopass(psfex, ps3):
         ss = np.sin(angle)
         xx = B[0,0] * cc + B[0,1] * ss
         yy = B[1,0] * cc + B[1,1] * ss
-        f2H,f2W = Fsum2.shape
+        f2H,f2W = Fmine2.shape
         plt.plot(xx, f2H/2. + yy, 'r-', lw=2)
 
         plt.plot(xx, 1.5 * f2H + yy, 'r--', lw=2)
@@ -483,16 +484,16 @@ def lopass(psfex, ps3):
     ps3.savefig()
     
     # plt.clf()
-    # dimshow(Fsum2.real, **rima)
-    # print('Real range:', Fsum2.real.min(), Fsum2.real.max())
+    # dimshow(Fmine2.real, **rima)
+    # print('Real range:', Fmine2.real.min(), Fmine2.real.max())
     # ps3.savefig()
     # plt.clf()
-    # dimshow(Fsum2.imag, **iima)
-    # print('Imag range:', Fsum2.imag.min(), Fsum2.imag.max())
+    # dimshow(Fmine2.imag, **iima)
+    # print('Imag range:', Fmine2.imag.min(), Fmine2.imag.max())
     # ps3.savefig()
 
-    print('Fsum2.real sum', Fsum2.real.sum())
-    print('Fsum.real sum', Fsum.real.sum())
+    print('Fmine2.real sum', Fmine2.real.sum())
+    print('Fmine.real sum', Fmine.real.sum())
 
     # plt.clf()
     # dimshow(tinypad, **ima)
@@ -504,7 +505,7 @@ def lopass(psfex, ps3):
     # dimshow(tinypad2, **ima)
     # ps3.savefig()
     # 
-    # my = np.fft.irfft2(Fsum, s=(pH,pW))
+    # my = np.fft.irfft2(Fmine, s=(pH,pW))
     # plt.clf()
     # dimshow(my, **ima)
     # ps3.savefig()
@@ -547,43 +548,43 @@ def lopass(psfex, ps3):
 
     # Mine, at regular frequencies
     plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
+    dimshow(np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
             vmin=0, vmax=1.1, **fima)
     plt.colorbar()
     ps3.savefig()
 
     # plt.clf()
-    # dimshow(np.fft.fftshift(Fsum.real, axes=(0,)), **rima)
+    # dimshow(np.fft.fftshift(Fmine.real, axes=(0,)), **rima)
     # ps3.savefig()
     # 
     # plt.clf()
-    # dimshow(np.fft.fftshift(Fsum.imag, axes=(0,)), **iima)
+    # dimshow(np.fft.fftshift(Fmine.imag, axes=(0,)), **iima)
     # ps3.savefig()
 
-    print('Fsum Real range:', Fsum.real.min(), Fsum.real.max())
-    print('Fsum Imag range:', Fsum.imag.min(), Fsum.imag.max())
+    print('Fmine Real range:', Fmine.real.min(), Fmine.real.max())
+    print('Fmine Imag range:', Fmine.imag.min(), Fmine.imag.max())
 
 
     plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fsum.real,
-                                     Ftiny.imag - Fsum.imag), axes=(0,)), **fima)
+    dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fmine.real,
+                                     Ftiny.imag - Fmine.imag), axes=(0,)), **fima)
     plt.colorbar()
     ps3.savefig()
 
 
     # plt.clf()
-    # dimshow(np.fft.fftshift(Ftiny.real - Fsum.real, axes=(0,)), **rima)
+    # dimshow(np.fft.fftshift(Ftiny.real - Fmine.real, axes=(0,)), **rima)
     # ps3.savefig()
     # 
     # plt.clf()
-    # dimshow(np.fft.fftshift(Ftiny.imag - Fsum.imag, axes=(0,)), **iima)
+    # dimshow(np.fft.fftshift(Ftiny.imag - Fmine.imag, axes=(0,)), **iima)
     # ps3.savefig()
 
-    diff = Ftiny - Fsum
+    diff = Ftiny - Fmine
     print('diff Real range:', diff.real.min(), diff.real.max())
     print('diff Imag range:', diff.imag.min(), diff.imag.max())
 
-    print('Fsum sum:', np.hypot(Fsum.real, Fsum.imag).sum())
+    print('Fmine sum:', np.hypot(Fmine.real, Fmine.imag).sum())
     print('Ftiny sum:', np.hypot(Ftiny.real, Ftiny.imag).sum())
 
     ax = plt.axis()
@@ -598,7 +599,7 @@ def lopass(psfex, ps3):
         ss = np.sin(angle)
         xx = B[0,0] * cc + B[0,1] * ss
         yy = B[1,0] * cc + B[1,1] * ss
-        fsH,fsW = Fsum.shape
+        fsH,fsW = Fmine.shape
         plt.plot(xx, fsH/2. + yy, 'r-', lw=2)
 
         plt.plot(xx, 1.5 * fsH + yy, 'r--', lw=2)
@@ -613,25 +614,27 @@ def lopass(psfex, ps3):
         1e-6)),
         vmin=-3, vmax=0, **fima)
     plt.colorbar()
+    plt.title('log Ftiny')
     ps3.savefig()
 
     plt.clf()
     dimshow(np.log10(np.maximum(
-        np.fft.fftshift(np.hypot(Fsum.real, Fsum.imag), axes=(0,)),
+        np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
         1e-6)),
         vmin=-3, vmax=0, **fima)
     plt.colorbar()
+    plt.title('log Fmine')
     ps3.savefig()
 
     plt.clf()
     dimshow(np.log10(np.maximum(
-        np.hypot(Fsum2.real, Fsum2.imag),
+        np.hypot(Fmine2.real, Fmine2.imag),
         1e-6)),
         vmin=-3, vmax=0, **fima)
     plt.colorbar()
+    plt.title('log Fmine2')
     ps3.savefig()
         
-
 
 
     # Subsample the PSF via resampling
@@ -656,9 +659,14 @@ def lopass(psfex, ps3):
     plt.subplot(1,2,2)
     dimshow(subpsfim)
     ps3.savefig()
+
+    print('SubPSF image:', subpsfim.shape)
+    subpixpsf = PixelizedPSF(subpsfim[:-1,:-1])
+    SP,(px0,py0),(spH,spW),(sw,sv) = subpixpsf.getFourierTransform(
+        0., 0., 2*halfsize)
+
+    print('SP shape', SP.shape)
     
-
-
     wcs = NullWCS()
     wcs.pixscale /= scale
     print('subsampling image: set pixscale', wcs.pixscale)
@@ -692,12 +700,131 @@ def lopass(psfex, ps3):
     tH,tW = subtinypad.shape
     Fsub /= (tH * np.pi)
 
+    Fsub *= scale
+
+    fima2 = fima.copy()
+    fima2.update(vmin=0, vmax=1.1)
+
+    Fsub_orig = Fsub.copy()
+
+    # Trim Fsub to same size (63,33) vs (64,33)
+    #h1,w1 = Fsub.shape
+    #hm2,wm2 = Fmine2.shape
+    #Fsub = Fsub[:hm2,:]
+    
     plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(Fsub.real, Fsub.imag), axes=(0,)),
-            vmin=0, vmax=1.1, **fima)
+    dimshow(np.fft.fftshift(np.hypot(Fsub.real, Fsub.imag), axes=(0,)), **fima2)
     plt.colorbar()
     plt.title('Fsub')
     ps3.savefig()
+
+    print('Fsub sum:', np.hypot(Fsub.real, Fsub.imag).sum())
+    print('Fsub Real range:', Fsub.real.min(), Fsub.real.max())
+    print('Fsub Imag range:', Fsub.imag.min(), Fsub.imag.max())
+
+    pH,pW = subtinypad2.shape
+    wt = np.fft.rfftfreq(pW)
+    vt = np.fft.fftfreq(pH)
+    # print('wsub:', len(wt), 'min/max', wt.min(), wt.max())
+    # print('vsub:', len(vt), 'min/max', vt.min(), vt.max())
+
+    df = np.abs(w[1] - w[0])
+    w2b = np.arange(2*len(w)-1) * df + 2.*np.min(w)
+    v2b = np.arange(2*len(v)) * df + 2.*np.min(v)
+    # print('w2:', w2)
+    # print('w2b:', w2b)
+    # print('v2:', v2)
+    # print('v2b:', v2b)
+    Fmine2b = amix.getFourierTransform(w2b, v2b)
+
+    print('Fmine2b shape', Fmine2b.shape)
+    print('Fmine2b sum:', np.hypot(Fmine2b.real, Fmine2b.imag).sum())
+    print('Fmine2b Real range:', Fmine2b.real.min(), Fmine2b.real.max())
+    print('Fmine2b Imag range:', Fmine2b.imag.min(), Fmine2b.imag.max())
+    
+    # # My method, Fourier transform with twice the frequency range
+    # plt.clf()
+    # dimshow(np.hypot(Fmine2.real, Fmine2.imag), **fima2)
+    # plt.colorbar()
+    # plt.title('Fmine2')
+    # ps3.savefig()
+    # 
+    # diff = np.fft.fftshift(Fsub, axes=(0,)) - Fmine2
+    # print('diff Real range:', diff.real.min(), diff.real.max())
+    # print('diff Imag range:', diff.imag.min(), diff.imag.max())
+    # 
+    # plt.clf()
+    # dimshow(np.hypot(diff.real, diff.imag), **fima)
+    # plt.colorbar()
+    # plt.title('Fsub - Fmine2')
+    # ps3.savefig()
+
+    diff2 = np.fft.fftshift(Fsub_orig, axes=(0,)) - Fmine2b
+    print('diff2 Real range:', diff.real.min(), diff.real.max())
+    print('diff2 Imag range:', diff.imag.min(), diff.imag.max())
+    
+    plt.clf()
+    dimshow(np.hypot(diff2.real, diff2.imag), **fima)
+    plt.colorbar()
+    plt.title('Fsub - Fmine2b')
+    ps3.savefig()
+
+    plt.clf()
+    dimshow(diff2.real, **rima)
+    plt.colorbar()
+    plt.title('real(Fsub - Fmine2b)')
+    ps3.savefig()
+
+    sz = 64
+
+    plt.clf()
+    plt.subplot(2,2,1)
+    dimshow(Ftiny.real, **rima)
+    plt.subplot(2,2,2)
+    dimshow(Ftiny.imag, **rima)
+    plt.subplot(2,2,3)
+    dimshow(P.real, **rima)
+    plt.subplot(2,2,4)
+    dimshow(P.imag, **rima)
+    ps3.savefig()
+    
+    PG = np.fft.irfft2(Ftiny * P, s=(sz,sz))
+    print('PG', PG.dtype, PG.shape)
+    plt.clf()
+    dimshow(PG, **ima)
+    plt.colorbar()
+    plt.title('PG')
+    ps3.savefig()
+    
+    SG = np.fft.irfft2(Fsub * SP, s=(sz,sz))
+    print('SG', SG.dtype, SG.shape)
+    plt.clf()
+    dimshow(SG, **ima)
+    plt.colorbar()
+    plt.title('SG')
+    ps3.savefig()
+
+    #P,(px0,py0),(pH,pW),(w,v) = pixpsf.getFourierTransform(0., 0., halfsize)
+    #Fmine = amix.getFourierTransform(w, v)
+
+    MG = np.fft.irfft2(Fmine * P, s=(sz,sz))
+    print('MG', MG.dtype, MG.shape)
+    plt.clf()
+    dimshow(MG, **ima)
+    plt.colorbar()
+    plt.title('MG')
+    ps3.savefig()
+    
+
+    MG2 = np.fft.irfft2(Fmine2b * SP, s=(sz,sz))
+    print('MG2', MG2.dtype, MG2.shape)
+    plt.clf()
+    dimshow(MG2, **ima)
+    plt.colorbar()
+    plt.title('MG2')
+    ps3.savefig()
+
+
     
 def main():
     # !!important!!
