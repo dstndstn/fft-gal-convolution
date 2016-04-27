@@ -411,6 +411,10 @@ def lopass(psfex, ps3):
     rima = dict(ticks=False, cmap='Greens')
     iima = dict(ticks=False, cmap='Reds')
 
+    def diffshow(D, **ima):
+        mx = np.max(np.abs(D))
+        dimshow(D, vmin=-mx, vmax=mx, **ima)
+    
     # Move galaxy to center of image.
     gal.pos.x = pH/2.
     gal.pos.y = pW/2.
@@ -775,20 +779,32 @@ def lopass(psfex, ps3):
     plt.title('real(Fsub - Fmine2b)')
     ps3.savefig()
 
+    print('Ftiny:', Ftiny.shape)
+    print('P:', P.shape)
+    print('Fsub:', Fsub.shape)
+    print('SP:', SP.shape)
+    print('Fmine2b:', Fmine2b.shape)
+    
     sz = 64
+    sz1 = 32
 
     plt.clf()
     plt.subplot(2,2,1)
     dimshow(Ftiny.real, **rima)
+    plt.colorbar()
     plt.subplot(2,2,2)
     dimshow(Ftiny.imag, **rima)
+    plt.colorbar()
     plt.subplot(2,2,3)
     dimshow(P.real, **rima)
+    plt.colorbar()
     plt.subplot(2,2,4)
     dimshow(P.imag, **rima)
+    plt.colorbar()
+    plt.suptitle('Ftiny, P')
     ps3.savefig()
     
-    PG = np.fft.irfft2(Ftiny * P, s=(sz,sz))
+    PG = np.fft.irfft2(Ftiny * P, s=(sz1,sz1))
     print('PG', PG.dtype, PG.shape)
     plt.clf()
     dimshow(PG, **ima)
@@ -796,6 +812,55 @@ def lopass(psfex, ps3):
     plt.title('PG')
     ps3.savefig()
     
+    #P,(px0,py0),(pH,pW),(w,v) = pixpsf.getFourierTransform(0., 0., halfsize)
+    #Fmine = amix.getFourierTransform(w, v)
+
+    plt.clf()
+    plt.subplot(2,2,1)
+    dimshow(Fmine.real, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,2)
+    dimshow(Fmine.imag, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,3)
+    dimshow(P.real, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,4)
+    dimshow(P.imag, **rima)
+    plt.colorbar()
+    plt.suptitle('Fmine, P')
+    ps3.savefig()
+
+    MG = np.fft.irfft2(Fmine * P, s=(sz1,sz1))
+    print('MG', MG.dtype, MG.shape)
+    plt.clf()
+    dimshow(MG, **ima)
+    plt.colorbar()
+    plt.title('MG')
+    ps3.savefig()
+
+    plt.clf()
+    diffshow(PG - MG, **ima)
+    plt.colorbar()
+    plt.title('PG - MG')
+    ps3.savefig()
+    
+    plt.clf()
+    plt.subplot(2,2,1)
+    dimshow(Fsub.real, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,2)
+    dimshow(Fsub.imag, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,3)
+    dimshow(SP.real, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,4)
+    dimshow(SP.imag, **rima)
+    plt.colorbar()
+    plt.suptitle('Fsub, SP')
+    ps3.savefig()
+
     SG = np.fft.irfft2(Fsub * SP, s=(sz,sz))
     print('SG', SG.dtype, SG.shape)
     plt.clf()
@@ -804,19 +869,25 @@ def lopass(psfex, ps3):
     plt.title('SG')
     ps3.savefig()
 
-    #P,(px0,py0),(pH,pW),(w,v) = pixpsf.getFourierTransform(0., 0., halfsize)
-    #Fmine = amix.getFourierTransform(w, v)
-
-    MG = np.fft.irfft2(Fmine * P, s=(sz,sz))
-    print('MG', MG.dtype, MG.shape)
-    plt.clf()
-    dimshow(MG, **ima)
-    plt.colorbar()
-    plt.title('MG')
-    ps3.savefig()
+    Fmine2c = np.fft.fftshift(Fmine2b, axes=(0,))
     
+    plt.clf()
+    plt.subplot(2,2,1)
+    dimshow(Fmine2c.real, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,2)
+    dimshow(Fmine2c.imag, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,3)
+    dimshow(SP.real, **rima)
+    plt.colorbar()
+    plt.subplot(2,2,4)
+    dimshow(SP.imag, **rima)
+    plt.colorbar()
+    plt.suptitle('Fmine2c, SP')
+    ps3.savefig()
 
-    MG2 = np.fft.irfft2(Fmine2b * SP, s=(sz,sz))
+    MG2 = np.fft.irfft2(Fmine2c * SP, s=(sz,sz))
     print('MG2', MG2.dtype, MG2.shape)
     plt.clf()
     dimshow(MG2, **ima)
@@ -824,7 +895,13 @@ def lopass(psfex, ps3):
     plt.title('MG2')
     ps3.savefig()
 
+    plt.clf()
+    diffshow(SG - MG2, **ima)
+    plt.colorbar()
+    plt.title('SG - MG2')
+    ps3.savefig()
 
+    
     
 def main():
     # !!important!!
