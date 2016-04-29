@@ -424,80 +424,80 @@ def lopass(psfex, ps3):
     tinypad = np.zeros((pH,pW))
     tinyp.addTo(tinypad)
 
-    #print('w range:', np.min(w), np.max(w))
-    #print('v range:', np.min(v), np.max(v))
-    w2 = np.linspace(2.*np.min(w), 2.*np.max(w), len(w)*2-1)
-    v2 = np.linspace(2.*np.min(v), 2.*np.max(v), len(v)*2-1)
-    # print('w:', w)
-    # print('w2:', w2)
-    # print('v:', v)
-    # print('v2:', v2)
-    # [v2,w2]
-    Fmine2 = amix.getFourierTransform(w2, v2)
-
-    # print('w2', len(w2), 'v2', len(v2), 'Fmine2', Fmine2.shape)
-
-    I = np.flatnonzero((w2 >= np.min(w)) * (w2 <= np.max(w)))
-    J = np.flatnonzero((v2 >= np.min(v)) * (v2 <= np.max(v)))
-    # print('w', len(w), 'v', len(v), 'Fmine', Fmine.shape)
-    # print('I', len(I), 'J', len(J))
-
-    print('Sub-sum Fmine2:', Fmine2[J,:][:,I].real.sum())
-
-    # w3 = np.linspace(3.*np.min(w), 3.*np.max(w), len(w)*3-2)
-    # v3 = np.linspace(3.*np.min(v), 3.*np.max(v), len(v)*3-2)
-    # print('w:', w)
-    # print('w3:', w3)
-    # print('v:', v)
-    # print('v3:', v3)
+    # #print('w range:', np.min(w), np.max(w))
+    # #print('v range:', np.min(v), np.max(v))
+    # w2 = np.linspace(2.*np.min(w), 2.*np.max(w), len(w)*2-1)
+    # v2 = np.linspace(2.*np.min(v), 2.*np.max(v), len(v)*2-1)
+    # # print('w:', w)
+    # # print('w2:', w2)
+    # # print('v:', v)
+    # # print('v2:', v2)
     # # [v2,w2]
-    # Fmine3 = amix.getFourierTransform(w3, v3)
-    # print('Fmine3.real sum', Fmine3.real.sum())
+    # Fmine2 = amix.getFourierTransform(w2, v2)
     # 
-    # print('Folded Fmine3.real sum', Fmine3.real.sum() + Fmine3[:,1:].real.sum())
-    
-    #print('amix:', amix)
-    #print('amix means:', amix.mean)
-
-    # My method, Fourier transform with twice the frequency range
-    plt.clf()
-    dimshow(np.hypot(Fmine2.real, Fmine2.imag), **fima)
-    plt.title('Fmine2')
-    ps3.savefig()
-
-    #for va in amix.var:
-    #    e = EllipseE.fromCovariance(va)
-    ax = plt.axis()
-    for k in range(amix.K):
-        Cinv = np.linalg.inv(amix.var[k,:,:])
-        Cinv *= (4. * np.pi**2)
-        e = EllipseE.fromCovariance(Cinv)
-        B = e.getRaDecBasis() * 3600.
-        angle = np.linspace(0, 2.*np.pi, 90)
-        cc = np.cos(angle)
-        ss = np.sin(angle)
-        xx = B[0,0] * cc + B[0,1] * ss
-        yy = B[1,0] * cc + B[1,1] * ss
-        f2H,f2W = Fmine2.shape
-        plt.plot(xx, f2H/2. + yy, 'r-', lw=2)
-
-        plt.plot(xx, 1.5 * f2H + yy, 'r--', lw=2)
-        plt.plot(xx, -0.5 * f2H + yy, 'r--', lw=2)
-
-    plt.axis(ax)
-    ps3.savefig()
-    
+    # # print('w2', len(w2), 'v2', len(v2), 'Fmine2', Fmine2.shape)
+    # 
+    # I = np.flatnonzero((w2 >= np.min(w)) * (w2 <= np.max(w)))
+    # J = np.flatnonzero((v2 >= np.min(v)) * (v2 <= np.max(v)))
+    # # print('w', len(w), 'v', len(v), 'Fmine', Fmine.shape)
+    # # print('I', len(I), 'J', len(J))
+    # 
+    # print('Sub-sum Fmine2:', Fmine2[J,:][:,I].real.sum())
+    # 
+    # # w3 = np.linspace(3.*np.min(w), 3.*np.max(w), len(w)*3-2)
+    # # v3 = np.linspace(3.*np.min(v), 3.*np.max(v), len(v)*3-2)
+    # # print('w:', w)
+    # # print('w3:', w3)
+    # # print('v:', v)
+    # # print('v3:', v3)
+    # # # [v2,w2]
+    # # Fmine3 = amix.getFourierTransform(w3, v3)
+    # # print('Fmine3.real sum', Fmine3.real.sum())
+    # # 
+    # # print('Folded Fmine3.real sum', Fmine3.real.sum() + Fmine3[:,1:].real.sum())
+    # 
+    # #print('amix:', amix)
+    # #print('amix means:', amix.mean)
+    # 
+    # # My method, Fourier transform with twice the frequency range
     # plt.clf()
-    # dimshow(Fmine2.real, **rima)
-    # print('Real range:', Fmine2.real.min(), Fmine2.real.max())
+    # dimshow(np.hypot(Fmine2.real, Fmine2.imag), **fima)
+    # plt.title('Fmine2')
     # ps3.savefig()
-    # plt.clf()
-    # dimshow(Fmine2.imag, **iima)
-    # print('Imag range:', Fmine2.imag.min(), Fmine2.imag.max())
+    # 
+    # #for va in amix.var:
+    # #    e = EllipseE.fromCovariance(va)
+    # ax = plt.axis()
+    # for k in range(amix.K):
+    #     Cinv = np.linalg.inv(amix.var[k,:,:])
+    #     Cinv *= (4. * np.pi**2)
+    #     e = EllipseE.fromCovariance(Cinv)
+    #     B = e.getRaDecBasis() * 3600.
+    #     angle = np.linspace(0, 2.*np.pi, 90)
+    #     cc = np.cos(angle)
+    #     ss = np.sin(angle)
+    #     xx = B[0,0] * cc + B[0,1] * ss
+    #     yy = B[1,0] * cc + B[1,1] * ss
+    #     f2H,f2W = Fmine2.shape
+    #     plt.plot(xx, f2H/2. + yy, 'r-', lw=2)
+    # 
+    #     plt.plot(xx, 1.5 * f2H + yy, 'r--', lw=2)
+    #     plt.plot(xx, -0.5 * f2H + yy, 'r--', lw=2)
+    # 
+    # plt.axis(ax)
     # ps3.savefig()
-
-    print('Fmine2.real sum', Fmine2.real.sum())
-    print('Fmine.real sum', Fmine.real.sum())
+    # 
+    # # plt.clf()
+    # # dimshow(Fmine2.real, **rima)
+    # # print('Real range:', Fmine2.real.min(), Fmine2.real.max())
+    # # ps3.savefig()
+    # # plt.clf()
+    # # dimshow(Fmine2.imag, **iima)
+    # # print('Imag range:', Fmine2.imag.min(), Fmine2.imag.max())
+    # # ps3.savefig()
+    # 
+    # print('Fmine2.real sum', Fmine2.real.sum())
+    # print('Fmine.real sum', Fmine.real.sum())
 
     # plt.clf()
     # dimshow(tinypad, **ima)
@@ -630,33 +630,137 @@ def lopass(psfex, ps3):
     plt.title('log Fmine')
     ps3.savefig()
 
-    plt.clf()
-    dimshow(np.log10(np.maximum(
-        np.hypot(Fmine2.real, Fmine2.imag),
-        1e-6)),
-        vmin=-3, vmax=0, **fima)
-    plt.colorbar()
-    plt.title('log Fmine2')
-    ps3.savefig()
+    # plt.clf()
+    # dimshow(np.log10(np.maximum(
+    #     np.hypot(Fmine2.real, Fmine2.imag),
+    #     1e-6)),
+    #     vmin=-3, vmax=0, **fima)
+    # plt.colorbar()
+    # plt.title('log Fmine2')
+    # ps3.savefig()
         
 
 
     # Subsample the PSF via resampling
     from astrometry.util.util import lanczos_shift_image
 
-    scale = 2
+
+    # dxlist,dylist = [],[]
+    # scales = [2,4,8,16]
+    # for scale in scales:
+    #     
+    #     sh,sw = ph*scale, pw*scale
+    #     subpsfim = np.zeros((sh,sw))
+    #     step = 1./float(scale)
+    #     for ix in np.arange(scale):
+    #         for iy in np.arange(scale):
+    #             dx = ix * step
+    #             dy = iy * step
+    #             #dx = 0.5 + (ix - 0.5) * step
+    #             #dy = 0.5 + (iy - 0.5) * step
+    #             #if ix == 0 and iy == 0:
+    #             #    subpsfim[0::scale, 0::scale] = psfim
+    #             #    continue
+    #             shift = lanczos_shift_image(psfim, -dx, -dy, order=5)
+    #             subpsfim[iy::scale, ix::scale] = shift
+    # 
+    #     # HACK -clamp edges to zero to counter possible weird lanczos edge issues?
+    #     subpsfim[:2,:] = 0
+    #     subpsfim[:,:2] = 0
+    #     subpsfim[-2:,:] = 0
+    #     subpsfim[:,-2:] = 0
+    # 
+    #     print('ph,pw, scale', ph,pw,scale)
+    #     print('sh,sw', sh,sw)
+    #     print('Subpsfim shape', subpsfim.shape)
+    #     subpixpsf = PixelizedPSF(subpsfim[:-1,:-1])
+    #     SP,(px0,py0),(spH,spW),(sw,sv) = subpixpsf.getFourierTransform(
+    #         0., 0., scale*halfsize)
+    # 
+    #     wcs = NullWCS()
+    #     wcs.pixscale /= scale
+    #     print('subsampling image: set pixscale', wcs.pixscale)
+    #     print('WCS:', wcs)
+    # 
+    #     subdata=np.zeros((scale*H,scale*W), np.float32)
+    #     subimg = Image(data=subdata, invvar=np.ones_like(subdata), psf=tinypsf,
+    #                    wcs=wcs)
+    # 
+    #     # Move galaxy to center of image.
+    #     gal.pos.x = scale*pH/2.
+    #     gal.pos.y = scale*pW/2.
+    #     
+    #     subtinyp = gal.getModelPatch(subimg)
+    #     subtinypad = np.zeros((scale*pH,scale*pW))
+    #     subtinyp.addTo(subtinypad)
+    #     # Rotated to be zero-centered.
+    #     subtinypad2 = np.fft.fftshift(subtinypad)
+    #     
+    #     Fsub = np.fft.rfft2(subtinypad2)
+    #     tH,tW = subtinypad.shape
+    #     Fsub /= (tH * np.pi)
+    #     Fsub *= scale
+    #     
+    #     sz = scale * 32
+    #     SG = np.fft.irfft2(Fsub * SP, s=(sz,sz))
+    # 
+    #     # Bin the subsampled ones...
+    #     BSG = bin_image(SG, scale)
+    #     BSG /= (scale**2)
+    # 
+    #     sz1 = 32
+    #     MG = np.fft.irfft2(Fmine * P, s=(sz1,sz1))
+    # 
+    #     print('MG:')
+    #     x1,y1 = measure(MG)
+    #     #mx.append(x1)
+    #     #my.append(y1)
+    #     print('BSG:')
+    #     x2,y2 = measure(BSG)
+    #     #sx.append(x2)
+    #     #sy.append(y2)
+    #     dxlist.append(x2 - x1)
+    #     dylist.append(y2 - y1)
+    # 
+    #     print('shift', x2-x1, y2-y1)
+    #     shift = lanczos_shift_image(BSG, -(x2-x1), -(y2-y1), order=5)
+    #     x3,y3 = measure(shift)
+    #     print('shifted:', x3-x1, y3-y1)
+    # 
+    #     
+    # plt.clf()
+    # plt.plot(scales, dxlist, 'bo-')
+    # plt.plot(scales, dylist, 'ro-')
+    # ps3.savefig()
+    # print('scales = np.array(', scales, ')')
+    # print('dx = np.array(', dxlist, ')')
+    # print('dy = np.array(', dylist, ')')
+    # 
+    # return
+        
+    
+    scale = 8
     sh,sw = ph*scale, pw*scale
     subpsfim = np.zeros((sh,sw))
+    step = 1./float(scale)
     for ix in np.arange(scale):
         for iy in np.arange(scale):
-            dx = ix / float(scale)
-            dy = iy / float(scale)
-            if ix == 0 and iy == 0:
-                subpsfim[0::scale, 0::scale] = psfim
-                continue
+            dx = ix * step
+            dy = iy * step
+            #dx = 0.5 + (ix - 0.5) * step
+            #dy = 0.5 + (iy - 0.5) * step
+            #if ix == 0 and iy == 0:
+            #    subpsfim[0::scale, 0::scale] = psfim
+            #    continue
             shift = lanczos_shift_image(psfim, -dx, -dy, order=5)
             subpsfim[iy::scale, ix::scale] = shift
 
+    # HACK -clamp edges to zero to counter possible weird lanczos edge issues?
+    subpsfim[:2,:] = 0
+    subpsfim[:,:2] = 0
+    subpsfim[-2:,:] = 0
+    subpsfim[:,-2:] = 0
+            
     plt.clf()
     plt.subplot(1,2,1)
     dimshow(psfim)
@@ -667,7 +771,7 @@ def lopass(psfex, ps3):
     print('SubPSF image:', subpsfim.shape)
     subpixpsf = PixelizedPSF(subpsfim[:-1,:-1])
     SP,(px0,py0),(spH,spW),(sw,sv) = subpixpsf.getFourierTransform(
-        0., 0., 2*halfsize)
+        0., 0., scale*halfsize)
 
     print('SP shape', SP.shape)
     
@@ -703,7 +807,6 @@ def lopass(psfex, ps3):
     Fsub = np.fft.rfft2(subtinypad2)
     tH,tW = subtinypad.shape
     Fsub /= (tH * np.pi)
-
     Fsub *= scale
 
     fima2 = fima.copy()
@@ -733,18 +836,21 @@ def lopass(psfex, ps3):
     # print('vsub:', len(vt), 'min/max', vt.min(), vt.max())
 
     df = np.abs(w[1] - w[0])
-    w2b = np.arange(2*len(w)-1) * df + 2.*np.min(w)
-    v2b = np.arange(2*len(v)) * df + 2.*np.min(v)
+    w2b = np.arange(scale * (len(w)-1) + 1) * df + scale*np.min(w)
+    v2b = np.arange(scale*len(v)) * df + scale*np.min(v)
     # print('w2:', w2)
     # print('w2b:', w2b)
     # print('v2:', v2)
     # print('v2b:', v2b)
     Fmine2b = amix.getFourierTransform(w2b, v2b)
-
+    # -> shape len(v2b),len(w2b)
+    
     print('Fmine2b shape', Fmine2b.shape)
     print('Fmine2b sum:', np.hypot(Fmine2b.real, Fmine2b.imag).sum())
     print('Fmine2b Real range:', Fmine2b.real.min(), Fmine2b.real.max())
     print('Fmine2b Imag range:', Fmine2b.imag.min(), Fmine2b.imag.max())
+
+    print('Fsub_orig shape:', Fsub_orig.shape)
     
     # # My method, Fourier transform with twice the frequency range
     # plt.clf()
@@ -785,21 +891,23 @@ def lopass(psfex, ps3):
     print('SP:', SP.shape)
     print('Fmine2b:', Fmine2b.shape)
     
-    sz = 64
+    #sz1 = 32
+    #sz = 64
     sz1 = 32
-
+    sz = scale * 32
+    
     plt.clf()
     plt.subplot(2,2,1)
     dimshow(Ftiny.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,2)
-    dimshow(Ftiny.imag, **rima)
+    dimshow(Ftiny.imag, **iima)
     plt.colorbar()
     plt.subplot(2,2,3)
     dimshow(P.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,4)
-    dimshow(P.imag, **rima)
+    dimshow(P.imag, **iima)
     plt.colorbar()
     plt.suptitle('Ftiny, P')
     ps3.savefig()
@@ -820,13 +928,13 @@ def lopass(psfex, ps3):
     dimshow(Fmine.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,2)
-    dimshow(Fmine.imag, **rima)
+    dimshow(Fmine.imag, **iima)
     plt.colorbar()
     plt.subplot(2,2,3)
     dimshow(P.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,4)
-    dimshow(P.imag, **rima)
+    dimshow(P.imag, **iima)
     plt.colorbar()
     plt.suptitle('Fmine, P')
     ps3.savefig()
@@ -850,13 +958,13 @@ def lopass(psfex, ps3):
     dimshow(Fsub.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,2)
-    dimshow(Fsub.imag, **rima)
+    dimshow(Fsub.imag, **iima)
     plt.colorbar()
     plt.subplot(2,2,3)
     dimshow(SP.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,4)
-    dimshow(SP.imag, **rima)
+    dimshow(SP.imag, **iima)
     plt.colorbar()
     plt.suptitle('Fsub, SP')
     ps3.savefig()
@@ -876,13 +984,13 @@ def lopass(psfex, ps3):
     dimshow(Fmine2c.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,2)
-    dimshow(Fmine2c.imag, **rima)
+    dimshow(Fmine2c.imag, **iima)
     plt.colorbar()
     plt.subplot(2,2,3)
     dimshow(SP.real, **rima)
     plt.colorbar()
     plt.subplot(2,2,4)
-    dimshow(SP.imag, **rima)
+    dimshow(SP.imag, **iima)
     plt.colorbar()
     plt.suptitle('Fmine2c, SP')
     ps3.savefig()
@@ -901,6 +1009,61 @@ def lopass(psfex, ps3):
     plt.title('SG - MG2')
     ps3.savefig()
 
+    # Bin the subsampled ones...
+    BSG = bin_image(SG, scale)
+    BSG /= (scale**2)
+
+    print('MG:')
+    x1,y1 = measure(MG)
+    print('BSG:')
+    x2,y2 = measure(BSG)
+
+    shiftBSG = lanczos_shift_image(BSG, -(x2-x1), -(y2-y1), order=5)
+    
+    plt.clf()
+    dimshow(BSG, **ima)
+    plt.colorbar()
+    plt.title('BSG')
+    ps3.savefig()
+
+    plt.clf()
+    diffshow(BSG - MG, **ima)
+    plt.colorbar()
+    plt.title('BSG - MG')
+    ps3.savefig()
+
+    plt.clf()
+    diffshow(shiftBSG - MG, **ima)
+    plt.colorbar()
+    plt.title('shiftBSG - MG')
+    ps3.savefig()
+
+    
+
+def measure(img):
+    from scipy.ndimage.measurements import center_of_mass
+    #cy,cx = center_of_mass(img)
+    #print('Center of mass: %.2f, %.2f' % (cx,cy))
+    h,w = img.shape
+    xx,yy = np.meshgrid(np.arange(w), np.arange(h))
+    isum = img.sum()
+    cx,cy = np.sum(xx * img) / isum, np.sum(yy * img) / isum
+    #cr = np.sqrt(np.sum(((xx - cx)**2 + (yy - cy)**2) * img) / isum)
+    print('Center of mass: %.2f, %.2f' % (cx,cy))
+    #print('Second moment: %.2f' % cr)
+    return cx,cy
+    
+def bin_image(data, S):
+    # rebin image data
+    H,W = data.shape
+    sH,sW = (H+S-1)/S, (W+S-1)/S
+    newdata = np.zeros((sH,sW), dtype=data.dtype)
+    for i in range(S):
+        for j in range(S):
+            subdata = data[i::S, j::S]
+            subh,subw = subdata.shape
+            newdata[:subh,:subw] += subdata
+    return newdata
     
     
 def main():
