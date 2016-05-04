@@ -9,6 +9,7 @@
 % - talk about the possibilty of using PSF models sampled at other
 %   than the native pixel grid, as per Schlegel's comments
 
+% - \transpose symbol
 
 
 \documentclass[11pt,preprint]{aastex}
@@ -39,6 +40,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \newcommand{\Trick}{Method}
 \newcommand{\sersic}{S\'ersic}
 
+\newcommand{\transpose}[1]{#1^{T}}
 \newcommand{\CD}{C\!D}
 
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -159,7 +161,7 @@ is, they already include the effect of being sampled by square pixels.
 The galaxy models considered here are simple elliptical isophotes with
 surface brightness defined by
 \begin{equation}
-  I(r) \propto \exp(- k r^{1/n})
+  I(r) \propto \exp(- k(n) \, r^{1/n})
 \end{equation}
 where we can fix $n=1$ (exponential profile), $n=4$ (deVaucouleurs
 profile), or fit for $n$ (\sersic\ profile).  It is also common to fit
@@ -362,13 +364,13 @@ position angle $\theta$ and axis ratio $a$,
 %
 e & = \sqrt{e_1^2 + e_2^2} \\
 %
-a & = \frac{1 - e}{1 + e} \label{eq:a}
+\beta & = \frac{1 - e}{1 + e} \label{eq:a}
 \end{align}
 leading to the transformation matrix
 \begin{align}
 E &= r_e \begin{bmatrix}
-\textcolor{white}{-}a \cos{\theta} & \sin{\theta} \\
--a \sin{\theta} & \cos{\theta} \\
+\textcolor{white}{-}\beta \cos{\theta} & \sin{\theta} \\
+-\beta \sin{\theta} & \cos{\theta} \\
 \end{bmatrix} \quad .
 \end{align}
 If we represent the local astrometric world coordinate system by an
@@ -376,18 +378,18 @@ affine transformation that takes celestial coordinates to pixel
 coordinates, then we can multiply the two transformation matrices to
 convert from pixels to galaxy profile coordinates.  The FITS WCS
 standard \citep{wcs2} defines a transformation matrix $\CD$ that takes
-pixels to intermediate world coordinates.  The combined transformation
-matrix $T$ is then
+pixels to intermediate world coordinates.  The combined affine transformation
+matrix $A$ is then
 \begin{align}
-T & = (\CD)^{-1} E
+A & = (\CD)^{-1} E
 \end{align}
 so that a covariance matrix in galaxy effective radius coordinates can
 be transformed into pixel space by computing
 \begin{align}
-C &= T \, V \, T^T
+C &= A \, V \transpose{A}
 \label{eq:vpix}
 \end{align}
-where we will use isotropic variances $V = v I$.
+where we will use isotropic variances $V = v \bm{I}$.
 When we write out this matrix in full, we find that the $\cos{\theta}$
 and $\sin{\theta}$ terms always appear in pairs, so we can avoid
 computing these trigonometric functions explicitly in the above.  See
@@ -405,9 +407,9 @@ with covariance $C$
 in pixel space is defined by
 \begin{equation}
 g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}}
-\exp\left( -\frac{1}{2} \bm{x}^T C^{-1} \bm{x} \right)
+\exp\left( -\frac{1}{2} \transpose{\bm{x}} C^{-1} \bm{x} \right)
 \end{equation}
-which becomes, writing out the vector $\bm{x}$ as $(x,y)^T$
+which becomes, writing out the vector $\bm{x}$ as $\transpose{(x,y)}$
 and symmetric covariance $C = \bigl(\begin{smallmatrix}
 a&b \\ b&d
 \end{smallmatrix} \bigr)$,
@@ -546,7 +548,7 @@ illustrated in Figure \ref{fig:wrap}.
 In order to handle sub-pixel shifts in the galaxy position, we have
 added a Fourier phase term in \eqnref{eq:onegaussian}, though one
 could also omit this phase term and instead shift the resulting
-convolved profile in pixel space via a sinc-shift (Lanczos
+convolved profile in pixel space via a sinc-shift (or Lanczos
 approximation, in practice).
 
 
@@ -583,20 +585,20 @@ f & = \left( \frac{r_e}{t w - u v} \right)^2
 \\
 C_{1,1} & =
 %
-%a^2(w^2 c^2 + 2 u w c s + u^2 s^2) + w^2 s^2 - 2 u w c s + u^2 c^2
-a^2(w^2 c^2 + 2 u w c s + u^2 s^2) + u^2 c^2 - 2 u w c s + w^2 s^2
+%\beta^2(w^2 c^2 + 2 u w c s + u^2 s^2) + w^2 s^2 - 2 u w c s + u^2 c^2
+\beta^2(w^2 c^2 + 2 u w c s + u^2 s^2) + u^2 c^2 - 2 u w c s + w^2 s^2
 \\
 C_{1,2} & =
 %
-%-a^2 (v w c^2 + u v c s + t w c s + t u s^2) - v w s^2 + u v c s + t w c s - t u c^2
--a^2 (v w c^2 + (u v + t v) c s + t u s^2) - t u c^2 + (u v + t w) c s - v w s^2
+%-\beta^2 (v w c^2 + u v c s + t w c s + t u s^2) - v w s^2 + u v c s + t w c s - t u c^2
+-\beta^2 (v w c^2 + (u v + t v) c s + t u s^2) - t u c^2 + (u v + t w) c s - v w s^2
 \\
 C_{2,2} & =
 %
-a^2 (v^2 c^2 + 2 t v c s + t^2 s^2) + t^2 c^2 - 2 t v c s + v^2 s^2
+\beta^2 (v^2 c^2 + 2 t v c s + t^2 s^2) + t^2 c^2 - 2 t v c s + v^2 s^2
 \end{align}
 where $r_e$ is the galaxy effective radius in degrees,
-$a$ is the axis ratio (\eqnref{eq:a}) and
+$\beta$ is the axis ratio (\eqnref{eq:a}) and
 we have defined the abbreviations
 \begin{align}
 \begin{bmatrix}
