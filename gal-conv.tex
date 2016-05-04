@@ -6,6 +6,11 @@
 %   it goes from ~ well-sampled to undersampled
 %   (pixel space vs analytic in galsim?)
 
+% - talk about the possibilty of using PSF models sampled at other
+%   than the native pixel grid, as per Schlegel's comments
+
+
+
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
 \usepackage{bm}
@@ -32,6 +37,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \newcommand{\conv}{\otimes}
 \newcommand{\trick}{method}
 \newcommand{\Trick}{Method}
+\newcommand{\sersic}{S\'ersic}
 
 \newcommand{\CD}{C\!D}
 
@@ -68,14 +74,16 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   represented as a pixel grid.
   The \trick\ relies upon two
   observations: First, most simple galaxy profiles of common interest
-  (deVaucouleurs, exponential, S\'ersic) can be approximated as
+  (deVaucouleurs, exponential, \sersic) can be approximated as
   mixtures of Gaussians.  Second, the Fourier transform of a Gaussian
   is a Gaussian, thus the Fourier transform of a mixture-of-Gausssian
   approximation of a galaxy can be directly evaluated in Fourier
   space.
   %
-  We therefore perform the convolution in Fourier space, then
-  use the inverse FFT to return to pixel space.
+  We therefore perform the PSF--galaxy convolution in Fourier space,
+  using the FFT for the PSF model, direct evaluation of the Fourier
+  transform of the galaxy, and the inverse-FFT to return the result to
+  pixel space.
   %
   % Multiplication by the Fourier transform of the PSF model
   % accomplishes the convolution, and an inverse Fourier transformation
@@ -141,15 +149,28 @@ that the PSF must be approximated as a mixture of Gaussians; in
 practice, it takes many Gaussians to achieve a good approximation, and
 this makes the computation expensive.
 
+In this work, I consider pixelized PSF models, such as those produced
+by \project{PsfEx} \citep{psfex}.  Since these models are created from
+real images, they are naturally \emph{pixel-convolved} models; that
+is, they already include the effect of being sampled by square pixels.
+%and we do not need to think about pixels as ``little boxes''; the PSF
+%model is a sampling of an underlying smooth surface.
+
+The galaxy models considered here are simple elliptical isophotes with
+surface brightness defined by
+\begin{equation}
+  I(r) \propto \exp(- k r^{1/n})
+\end{equation}
+where we can fix $n=1$ (exponential profile), $n=4$ (deVaucouleurs
+profile), or fit for $n$ (\sersic\ profile).  The elliptical shape can
+be represented in terms of effective radius, axis ratio, and position
+angle, or any other ellipse representation.
+
+
 \begin{figure}
   \begin{center}
     \begin{tabular}{@{}c@{\hspace{1ex}}c@{\hspace{1ex}}c@{}}
-      %
-      Pixel Space
-      &
-      Fourier Space (Analytic)
-      &
-      Fourier Space \\
+      % Pixel Space & Fourier Space (Analytic) & Fourier Space \\
       %
       \cline{1-1} \cline{2-2} \cline{3-3}
       %
@@ -418,8 +439,14 @@ which, plugging in the covariance matrix $C$, works out to
 G(v,w) =
 e^{-2 \pi i (x_0 v + y_0 w)}
 e^{-2 \pi^2 (a v^2 + 2 b v w + d w^2)}
+\label{eq:onegaussian}
 \end{equation}
-which can easily be evaluated on a grid of frequencies $(v, w)$.
+which can easily be evaluated on a grid of frequencies $(v, w)$.  This
+is the expression we must evaluate to produce the Fourier transform of
+a single Gaussian component of a galaxy model.  Recall that the values
+$a$, $b$ and $d$ are simple manipulations of the galaxy radius and
+ellipticity and the local astrometric transformation, while $x_0$ and
+$y_0$ handle sub-pixel shifts.
 
 For a mixture of Gaussians, we must evaluate $G$ for each component in
 the mixture and compute their weighted sum.  In the case of a
@@ -513,6 +540,13 @@ galaxy, or wrap-around effects will be seen: The Fourier transform is
 periodic, so any part of the convolved galaxy profile that lies
 outside the image will alias into the image.  This is
 illustrated in Figure \ref{fig:wrap}.
+
+In order to handle sub-pixel shifts in the galaxy position, we have
+added a Fourier phase term in \eqnref{eq:onegaussian}, though one
+could also omit this phase term and instead shift the resulting
+convolved profile in pixel space via a sinc-shift (Lanczos
+approximation, in practice).
+
 
 
 
