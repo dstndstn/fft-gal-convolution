@@ -508,14 +508,9 @@ results in high-frequency aliasing.
 
 \begin{figure}
   \begin{center}
-    \begin{tabular}{ccccc}
+    \begin{tabular}{cccc}
       %
-      %My galaxy
-      && My galaxy FT & log(My galaxy FT) & Naive $-$ My \\
-      %
-      %\includegraphics[height=0.24\textwidth]{lopass-mine-pix}
-      &
-      %\raisebox{0.11\textwidth}{$\longleftarrow$}
+      && FSGM galaxy FT & log(FSGM galaxy FT) & Naive $-$ FSGM \\
       &
       \includegraphics[height=0.24\textwidth]{lopass-mine}
       &
@@ -524,11 +519,9 @@ results in high-frequency aliasing.
       \includegraphics[height=0.24\textwidth]{lopass-diff}
       \\
       %
-      Naive galaxy && Na\"ive galaxy FT & log(Na\"ive galaxy FT) & Naive $-$ My \\
+      Naive galaxy && Na\"ive galaxy FT & log(Na\"ive galaxy FT) & Naive $-$ FSGM \\
       %
       \includegraphics[height=0.24\textwidth]{lopass-naive-pix}
-      &
-      %\raisebox{0.11\textwidth}{$\longrightarrow$}
       &
       \includegraphics[height=0.24\textwidth]{lopass-naive}
       &
@@ -542,15 +535,16 @@ results in high-frequency aliasing.
       is rendered na\"ively at the native pixel scale.  Shown here is
       a galaxy with an exponential profile and effective radius of 4
       pixels.  The core of this galaxy is strongly peaked, and is not
-      well sampled.  While the Fourier transforms (second column) look
+      well sampled.  While the Fourier transforms (second column) of
+      my method (FSGM, for Fourier Space Gaussian Mixture) look
       similar, taking the logarithm (third column) shows that the
       Na\"ive method has significant power far from the origin, while
-      my Fourier Space Gaussian Mixture method drops off as expected.
-      Taking the difference (fourth column), it is evident that the
-      excess power at high frequencies is due to aliasing of power
-      outside the band into the band; the solid contours show the
-      Gaussian components of this galaxy, with the dashed contours
-      showing the wrapped-around (aliased) component.}
+      the FSGM power drops off as expected for Gaussians.  Taking the
+      difference (fourth column), it is evident that the excess power
+      at high frequencies is due to aliasing of power outside the band
+      into the band; the solid contours show the Gaussian components
+      of this galaxy, with the dashed contours showing the
+      wrapped-around (aliased) component.}
   \end{center}
 \end{figure}
 
