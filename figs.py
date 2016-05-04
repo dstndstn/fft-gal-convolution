@@ -376,8 +376,11 @@ def fft_plots(psfex, W, H, ps, ps2, ps3):
     
 def lopass(psfex, ps3):
     ### Lopass
-    plt.figure(2)
+    #plt.figure(2)
 
+    fig_rect = 3
+    fig_square = 2
+    
     H,W = 256,256
 
 
@@ -528,9 +531,10 @@ def lopass(psfex, ps3):
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
             vmin=0, vmax=1.1, **fima)
-    plt.colorbar()
-    ps3.savefig()
-
+    #plt.colorbar()
+    #ps3.savefig()
+    plt.savefig('lopass-naive.pdf')
+    
     # Ftiny2 = np.fft.fft2(tinypad2)
     # Ftiny2 /= (tH * np.pi)
     # print('Ftiny2.real sum', Ftiny2.real.sum())
@@ -554,9 +558,31 @@ def lopass(psfex, ps3):
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
             vmin=0, vmax=1.1, **fima)
-    plt.colorbar()
-    ps3.savefig()
+    #plt.colorbar()
+    plt.savefig('lopass-mine.pdf')
 
+    plt.figure(fig_square)
+    # Pixel-space galaxy plots
+    PM = np.fft.irfft2(Fmine, s=(pH,pW))
+    PT = np.fft.irfft2(Ftiny, s=(tH,tW))
+    mx = max(PM.max(), PT.max())
+    print('PM sum', PM.sum())
+    print('Max', PM.max())
+    PM = np.fft.fftshift(PM)
+    plt.clf()
+    dimshow(PM, vmin=0, vmax=mx, **ima)
+    plt.savefig('lopass-mine-pix.pdf')
+    #ps3.savefig()
+    
+    print('PT sum', PT.sum())
+    PT = np.fft.fftshift(PT)
+    plt.clf()
+    dimshow(PT, vmin=0, vmax=mx, **ima)
+    #ps3.savefig()
+    plt.savefig('lopass-naive-pix.pdf')
+    plt.figure(fig_rect)
+
+    
     # plt.clf()
     # dimshow(np.fft.fftshift(Fmine.real, axes=(0,)), **rima)
     # ps3.savefig()
@@ -572,8 +598,8 @@ def lopass(psfex, ps3):
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fmine.real,
                                      Ftiny.imag - Fmine.imag), axes=(0,)), **fima)
-    plt.colorbar()
-    ps3.savefig()
+    #plt.colorbar()
+    plt.savefig('lopass-diff.pdf')
 
 
     # plt.clf()
@@ -609,7 +635,8 @@ def lopass(psfex, ps3):
         plt.plot(xx, 1.5 * fsH + yy, 'r--', lw=2)
         plt.plot(xx, -0.5 * fsH + yy, 'r--', lw=2)
     plt.axis(ax)
-    ps3.savefig()
+    plt.savefig('lopass-diff-ell.pdf')
+    #ps3.savefig()
 
 
     plt.clf()
@@ -617,18 +644,20 @@ def lopass(psfex, ps3):
         np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
         1e-6)),
         vmin=-3, vmax=0, **fima)
-    plt.colorbar()
-    plt.title('log Ftiny')
-    ps3.savefig()
-
+    #plt.colorbar()
+    #plt.title('log Ftiny')
+    #ps3.savefig()
+    plt.savefig('lopass-naive-log.pdf')
+    
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
         1e-6)),
         vmin=-3, vmax=0, **fima)
-    plt.colorbar()
-    plt.title('log Fmine')
-    ps3.savefig()
+    #plt.colorbar()
+    #plt.title('log Fmine')
+    #ps3.savefig()
+    plt.savefig('lopass-mine-log.pdf')
 
     # plt.clf()
     # dimshow(np.log10(np.maximum(
@@ -1095,8 +1124,12 @@ def main():
     # plt.subplots_adjust(left=margin/frac, right=1 - margin/frac,
     #                     bottom=margin, top=1.-margin,
     #                     hspace=0, wspace=0)
+
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+
     
-    plt.figure(3, figsize=(6,3))
+    #plt.figure(3, figsize=(3,6))
+    plt.figure(3, figsize=(6 * frac,6))
     plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
     lopass(psfex, ps3)
     sys.exit(0)

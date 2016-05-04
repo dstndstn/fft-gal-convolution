@@ -11,6 +11,8 @@
 
 % - \transpose symbol
 
+% - real-data comparison between mixture-of-Gaussians and this method
+
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -473,11 +475,6 @@ e^{-2 \pi^2 (a_i v^2 + 2 b_i v w + d_i w^2)}
 \quad .
 \end{equation}
 
-
-
-%%% Example of pushing our galaxy MOGs through a WCS, etc?
-
-
 In Step 5 of our \trick, we directly evaluate these Gaussians in Fourier
 space, on the same discrete frequency grid $(v, w)$ used for the FFT
 of the PSF.  This has interesting properties.  By taking the Fourier
@@ -495,10 +492,70 @@ model, we are applying a perfect low-pass filter at exactly the
 Nyquist limit.  By zeroing out the high-frequency power, we avoid the
 aliasing that would otherwise result from Fourier transforming an
 undersampled signal.
-%
 
 Finally, in Step 6, we multiply the PSF and galaxy Fourier transforms,
 and apply the inverse FFT to return to pixel space.
+
+
+\section{Results}
+
+I first demonstrate how this \trick\ avoids the high-frequency
+aliasing that results if we na\"ively evaluate the galaxy profile in
+pixel space.  As shown in \figref{fig:aliasing}, evaluating even a
+rather broad exponential galaxy profile na\"ively in pixel space
+results in high-frequency aliasing.
+
+
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{ccccc}
+      %
+      %My galaxy
+      && My galaxy FT & log(My galaxy FT) & Naive $-$ My \\
+      %
+      %\includegraphics[height=0.24\textwidth]{lopass-mine-pix}
+      &
+      %\raisebox{0.11\textwidth}{$\longleftarrow$}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-mine}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-mine-log}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-diff}
+      \\
+      %
+      Naive galaxy && Na\"ive galaxy FT & log(Na\"ive galaxy FT) & Naive $-$ My \\
+      %
+      \includegraphics[height=0.24\textwidth]{lopass-naive-pix}
+      &
+      %\raisebox{0.11\textwidth}{$\longrightarrow$}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-naive}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-naive-log}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-diff-ell}
+    \end{tabular}
+    \caption{
+      \label{fig:aliasing}
+      A demonstration of high-frequency aliasing when a galaxy profile
+      is rendered na\"ively at the native pixel scale.  Shown here is
+      a galaxy with an exponential profile and effective radius of 4
+      pixels.  The core of this galaxy is strongly peaked, and is not
+      well sampled.  While the Fourier transforms (second column) look
+      similar, taking the logarithm (third column) shows that the
+      Na\"ive method has significant power far from the origin, while
+      my Fourier Space Gaussian Mixture method drops off as expected.
+      Taking the difference (fourth column), it is evident that the
+      excess power at high frequencies is due to aliasing of power
+      outside the band into the band; the solid contours show the
+      Gaussian components of this galaxy, with the dashed contours
+      showing the wrapped-around (aliased) component.}
+  \end{center}
+\end{figure}
+
+
+
 
 \section{Discussion}
 
