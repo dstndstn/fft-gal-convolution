@@ -55,17 +55,17 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \begin{document}
 
 \title{A \trick\ for fast galaxy--PSF convolution}
-\author{Dustin~Lang\altaffilmark{1,2,3}}
+\author{Dustin~Lang\altaffilmark{1,2}}
 \altaffiltext{1}%
 {Dunlap Institute and Department of Astronomy \& Astrophysics,
   University of Toronto,
   50 Saint George Street, Toronto, ON, M5S 3H4, Canada}
+% \altaffiltext{2}%
+% {Visitor, Department of Physics \& Astronomy,
+%   University of Waterloo,
+%   200 University Avenue West,
+%   Waterloo, ON, N2L 3G1, Canada}
 \altaffiltext{2}%
-{Visitor, Department of Physics \& Astronomy,
-  University of Waterloo,
-  200 University Avenue West,
-  Waterloo, ON, N2L 3G1, Canada}
-\altaffiltext{3}%
 {dstndstn@gmail.com}
 \date{DRAFT \today}
 \shorttitle{Fast Galaxy--PSF Convolution}
@@ -105,7 +105,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   %
   This \trick\ allows
   the efficient use of pixelized PSF models (ie, a PSF represented as
-  a grid of pixel values) in galaxy model-fitting approaches such as
+  a grid of pixel values) in galaxy forward model-fitting approaches such as
   \project{the Tractor}.
   %
   %Example code is available alongside the paper 
@@ -134,11 +134,31 @@ model galaxy profiles such as the deVaucouleurs profile are very
 undersampled by the native resolution of the CCD.  Thus it is not
 possible to render na\"ively the above-the-atmosphere galaxy at native
 pixel scale and then convolve by the PSF (also represented at native
-pixel scale), because undersampling will lead to aliasing.  Codes
-typically attempt to render the images at higher resolution than the
+pixel scale), because undersampling will lead to aliasing.
+Codes typically attempt to render the images at higher resolution than the
 CCD pixels and then bin down to the native CCD resolution; this
 significantly increases the computational cost, and may still not
 achieve exactly correct results.
+
+
+
+As an illustration of this problem, consider the limit of a tiny,
+point-like galaxy.  If rendered ``above the atmosphere'' at the native
+image pixel scale, nearly all its light will appear in one pixel,
+regardless of its position within that pixel.  If we generate a series
+of images, scanning the galaxy across different subpixel positions in
+the image, the galaxy's pixelized light will jump from one pixel to
+the next in steps.  When convolved by the PSF, the galaxy will look
+like a point source in the image, but rather than moving smoothly will
+jump from one pixel to the next.  If render at twice the native pixel
+scale and binned, it will jump in half-pixel steps, and if rendered at
+four times the native pixel resolution, will jump in quarter-pixel
+steps.  This occurs because the ``above the atmosphere'' image is
+undersampled; a point source has power at all frequencies, and
+rendering it at the native pixel scale causes the high-frequency power
+to alias into the band.
+\textbf{ADD A FIGURE ILLUSTRATING THIS!}
+
 
 In \project{the Tractor}, we have previously taken the approach of
 using mixture-of-Gaussian approximations for \emph{both} the PSF and
