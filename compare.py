@@ -2,7 +2,6 @@ from __future__ import print_function
 import numpy as np
 
 from demo import galaxy_psf_convolution, GaussianGalaxy
-import galsim
 
 def measure(img):
     from scipy.ndimage.measurements import center_of_mass
@@ -31,6 +30,8 @@ def imshow_diff(d, title):
     plt.title(title + ': L2err %.2g' % (np.sqrt(np.sum(d**2))))
         
 def compare(ph, pw, psf_sigma, gal_sigma, ps, subsample):
+    import galsim
+
     pixscale = 1.
     cd = pixscale * np.eye(2) / 3600.
 

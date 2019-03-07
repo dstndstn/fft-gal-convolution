@@ -18,7 +18,7 @@ def integrate_gaussian(G, x, y):
 def bin_image(data, S):
     # rebin image data
     H,W = data.shape
-    sH,sW = (H+S-1)/S, (W+S-1)/S
+    sH,sW = (H+S-1)//S, (W+S-1)//S
     newdata = np.zeros((sH,sW), dtype=data.dtype)
     for i in range(S):
         for j in range(S):
@@ -224,7 +224,7 @@ def main():
     ps = PlotSequence('conv')
     
     S = 51
-    center = S/2
+    center = S//2
     print('Center', center)
 
     #for psf_sigma in [2., 1.5, 1.]:
@@ -441,7 +441,8 @@ if __name__ == '__main__':
 
     from tractor.psfex import *
 
-    psffn = '/Users/dstn/legacypipe-dir/calib/decam/psfex/00257/00257496/decam-00257496-N1.fits'
+    #psffn = '/Users/dstn/legacypipe-dir/calib/decam/psfex/00257/00257496/decam-00257496-N1.fits'
+    psffn = '/Users/dstn/legacypipe/py/test/testcase3/calib/decam//psfex/00425/00425858/decam-00425858-N11.fits'
     print('Reading PsfEx model from', psffn)
     psf = PixelizedPsfEx(psffn)
 
@@ -476,6 +477,8 @@ if __name__ == '__main__':
     # Subsample the PSF via resampling
     from astrometry.util.util import lanczos_shift_image
 
+    print('Subsampling PSF')
+    
     scale = 2
     sh,sw = ph*scale, pw*scale
     subpixpsf = np.zeros((sh,sw))
@@ -489,6 +492,8 @@ if __name__ == '__main__':
             shift = lanczos_shift_image(pixpsf, -dx, -dy, order=5)
             subpixpsf[iy::scale, ix::scale] = shift
 
+    print('Eval galaxy')
+            
     # Evaluate a R_e = 1 pixel deVauc on the native pixel grid, using
     # the Gaussian approximation
     xx,yy = np.meshgrid(np.arange(pw), np.arange(ph))
@@ -516,7 +521,7 @@ if __name__ == '__main__':
         subpixgal += a * 1./vv * np.exp(-0.5 * r2 / vv)
 
     plt.clf()
-    plt.loglog(r2[sh/2,:]+1, subpixgal[sh/2,:], 'b-')
+    plt.loglog(r2[sh//2,:]+1, subpixgal[sh//2,:], 'b-')
     ps.savefig()
     
     plt.clf()
@@ -601,10 +606,10 @@ if __name__ == '__main__':
     ps.savefig()    
 
     plt.clf()
-    plt.plot(np.arange(pw), pixconv[ph/2,:], 'b-')
-    plt.plot(np.arange(sw)/float(scale), subpixconv[sh/2,:], 'r-')
-    plt.plot(np.arange(pw), Gmine[ph/2,:], 'k-')
-    plt.plot(np.arange(pw), pixpsf[ph/2,:], 'g-')
+    plt.plot(np.arange(pw), pixconv[ph//2,:], 'b-')
+    plt.plot(np.arange(sw)/float(scale), subpixconv[sh//2,:], 'r-')
+    plt.plot(np.arange(pw), Gmine[ph//2,:], 'k-')
+    plt.plot(np.arange(pw), pixpsf[ph//2,:], 'g-')
     ps.savefig()    
 
     plt.yscale('log')
