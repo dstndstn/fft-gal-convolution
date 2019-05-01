@@ -806,6 +806,12 @@ def lopass(psfex, ps3):
         1e-6)),
         vmin=-3, vmax=0, **fima)
     ps3.savefig()
+
+    print('exp(double,sub) - gexp(double,sub)')
+    plt.clf()
+    dimshow(Fsub.real - Fgsub.real, **fima)
+    plt.colorbar()
+    ps3.savefig()
     
     # plt.clf()
     # plt.subplot(1,2,1)
@@ -821,17 +827,20 @@ def lopass(psfex, ps3):
     
     print('Fms:', np.sum(np.hypot(Fms.real, Fms.imag)))
     print('Fsub:', np.sum(np.hypot(Fsub.real, Fsub.imag)))
-    
+
+    print('Fsub - Fms (double-res pixelized - mine)')
     plt.clf()
     dimshow(np.hypot(Fsub.real - Fms.real,
                      Fsub.imag - Fms.imag), **fima)
     ps3.savefig()
 
+    print('Fgsub - Fms (double-res pixelized Gaussian - mine)')
     plt.clf()
     dimshow(np.hypot(Fgsub.real - Fms.real,
                      Fgsub.imag - Fms.imag), **fima)
     ps3.savefig()
     
+
     
     plt.figure(fig_rect)
     
