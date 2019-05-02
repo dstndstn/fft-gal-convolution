@@ -518,56 +518,107 @@ under-sampled.
 
 
 \begin{figure}
+  \newcommand{\F}{$\mathcal{F}$}
   \begin{center}
-    \begin{tabular}{cccc}
+    \begin{tabular}{@{}ccccc@{}}
       %
-      & FSGM galaxy FT & log(FSGM galaxy FT) & Naive $-$ FSGM \\
+      This method
+      %& My galaxy FT
       &
-      \includegraphics[height=0.24\textwidth]{lopass-mine-fourier}
+      log(\F(This))
+      %& Naive $-$ FSGM \\
+      &
+      \\
+      %
+      \includegraphics[height=0.24\textwidth]{lopass-mine-pix}
+      %&
+      %$\leftarrow$
+      %&
+      %\includegraphics[height=0.24\textwidth]{lopass-mine-fourier}
       &
       \includegraphics[height=0.24\textwidth]{lopass-mine-logfourier}
       &
-      \includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-fourier}
+      %\includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-fourier}
       \\
       %
-      Naive galaxy & Na\"ive galaxy FT & log(Na\"ive galaxy FT) & Naive $-$ FSGM
+      Na\"ive
+      %& Na\"ive galaxy FT
+      & log(\F(Na\"ive))
+      &
+      \multicolumn{2}{c}{\F(Na\"ive $-$ This)}
+      %&
+      & Na\"ive $-$ This
       \\
       %
       \includegraphics[height=0.24\textwidth]{lopass-naive-pix}
-      &
-      \includegraphics[height=0.24\textwidth]{lopass-naive-fourier}
+      %&
+      %$\rightarrow$
+      %&
+      %\includegraphics[height=0.24\textwidth]{lopass-naive-fourier}
       &
       \includegraphics[height=0.24\textwidth]{lopass-naive-logfourier}
       &
+      \includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-fourier}
+      &
       \includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-fourier-ann}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-pix}
       \\
       %%%
+      Double-resolution
+      &
+      log(\F(Double))
+      &
+      \multicolumn{2}{c}{\F(Double $-$ This)}
+      &
+      Double $-$ This
+      \\
       %
       \includegraphics[height=0.24\textwidth]{lopass-dpix-pix}
-      &
-      \includegraphics[height=0.24\textwidth]{lopass-dclip-fourier}
+      %&
+      %\includegraphics[height=0.24\textwidth]{lopass-dclip-fourier}
       &
       \includegraphics[height=0.24\textwidth]{lopass-dclip-logfourier}
       &
       \includegraphics[height=0.24\textwidth]{lopass-diff-dclipmine-fourier}
-      \\
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-diff-dclipmine-fourier-ann}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-diff-dclipmine-pix}
+      %\\
     \end{tabular}
     \caption{
       \label{fig:aliasing}
-      A demonstration of high-frequency aliasing when a galaxy profile
-      is rendered na\"ively at the native pixel scale.  Shown here is
-      a galaxy with an exponential profile and effective radius of 4
-      pixels.  The core of this galaxy is strongly peaked, and is not
-      well sampled.  While the Fourier transforms (second column) of
-      my method (FSGM, for Fourier Space Gaussian Mixture) look
-      similar, taking the logarithm (third column) shows that the
-      Na\"ive method has significant power far from the origin, while
-      the FSGM power drops off as expected for Gaussians.  Taking the
-      difference (fourth column), it is evident that the excess power
-      at high frequencies is due to aliasing of power outside the band
-      into the band; the solid contours show the Gaussian components
-      of this galaxy, with the dashed contours showing the
-      wrapped-around (aliased) component.}
+      An illustration of the high-frequency aliasing that results when
+      a galaxy profile is rendered na\"ively at the typical native
+      pixel scale of an optical image.  Shown here is a galaxy with an
+      exponential radial profile and effective radius of 4 pixels.
+      The core of this galaxy is strongly peaked, and is not well
+      sampled.  The first row shows our results, the second row shows
+      the under-sampled galaxy profile that results when the
+      exponential profile function is evaluated at pixel centers, and
+      the third row shows the still-undersampled profile that results
+      when the profile is rendered at twice the resolution.
+      %
+      The first column shows the pixel-space representation, and the
+      second column shows Fourier space (log stretched).  The third
+      column shows the difference from our results, and the fourth
+      column marks the Gaussian mixture components in order to
+      highlight where aliasing occurs.  A notable difference is the
+      aliased lobes (shown with dashed lines), which appear because
+      the Na\"ive galaxy model is undersampled, and the high-frequency
+      power aliases into the low frequencies, causing high-frequency
+      errors when the galaxy model is convolved by the PSF.  In the
+      Double-resolution model, the aliased lobes are twice as far away
+      from the origin, but still exist.  Another notable difference is
+      that the central frequencies of the models differ.  This is
+      expected, since our method is directly evaluating the Fourier
+      transform of an approximation to the exponential galaxy profile.
+      %
+      In the last column, we transform back to pixel space.  The
+      high-frequency ``checkerboard'' strip results from ringing in
+      the central pixels.
+    }
   \end{center}
 \end{figure}
 
