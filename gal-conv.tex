@@ -57,14 +57,12 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \title{A \trick\ for fast galaxy--PSF convolution}
 \author{Dustin~Lang\altaffilmark{1,2}}
 \altaffiltext{1}%
-{Dunlap Institute and Department of Astronomy \& Astrophysics,
-  University of Toronto,
-  50 Saint George Street, Toronto, ON, M5S 3H4, Canada}
-% \altaffiltext{2}%
-% {Visitor, Department of Physics \& Astronomy,
-%   University of Waterloo,
-%   200 University Avenue West,
-%   Waterloo, ON, N2L 3G1, Canada}
+{Perimeter Institute for Theoretical Physics,
+  31 Caroline St N, Waterloo, ON, N2L 2Y5, Canada}
+\altaffiltext{2}%
+{Department of Physics \& Astronomy,
+ University of Waterloo,
+ 200 University Ave W, Waterloo, ON, N2L 3G1, Canada}
 \altaffiltext{2}%
 {dstndstn@gmail.com}
 \date{DRAFT \today}
@@ -73,9 +71,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 
 \begin{abstract}
   I present a \trick\ for the fast convolution of a model galaxy
-  profile by a point-spread function (PSF) model 
-  %that can be represented in the Fourier domain.
-  represented as a pixel grid.
+  profile by a point-spread function (PSF) model represented as a pixel grid.
   The \trick\ relies upon two
   observations: First, most simple galaxy profiles of common interest
   (deVaucouleurs, exponential, \sersic) can be approximated as
@@ -88,10 +84,6 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   using the FFT for the PSF model, direct evaluation of the Fourier
   transform of the galaxy, and the inverse-FFT to return the result to
   pixel space.
-  %
-  % Multiplication by the Fourier transform of the PSF model
-  % accomplishes the convolution, and an inverse Fourier transformation
-  % produces the required result in pixel space.
   %
   The \trick\ is fast and exact (to the extent that the mixture-of-Gaussians
   approximation of the galaxy profile is exact) as long as the pixelized PSF
@@ -107,8 +99,6 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   the efficient use of pixelized PSF models (ie, a PSF represented as
   a grid of pixel values) in galaxy forward model-fitting approaches such as
   \project{the Tractor}.
-  %
-  %Example code is available alongside the paper 
 \end{abstract}
 
 \section{Introduction}
