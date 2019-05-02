@@ -107,7 +107,17 @@ def lopass(ps, fig_square, fig_rect):
     dpix = naive_func(re)
     dpix /= dpix.sum()
     Fdpix = np.fft.rfft2(np.fft.fftshift(dpix))
-    
+
+    dh,dw = Fdpix.shape
+    # "dclip" = dpix cut to the central frequency region
+    print('Double shape:', dh,dw)
+    print('Normal shape:', H, W)
+    clip = (dh - H)//2
+    shifted = np.fft.fftshift(Fdpix, axes=(0,))
+    shifted = shifted[clip:-clip, :-clip]
+    print('clipped shape:', shifted.shape)
+    Fdclip = np.fft.fftshift(shifted, axes=(0,))
+    assert(Fdclip.shape == (H,FW))
 
     
     
@@ -219,7 +229,6 @@ def lopass(ps, fig_square, fig_rect):
     plt.title('log Fourier: double-res pix')
     ps.savefig()
 
-    dh,dw = Fdpix.shape
     ax = plt.axis()
     for k in range(1, amix.K):
         Cinv = np.linalg.inv(amix.var[k,:,:])
@@ -240,15 +249,6 @@ def lopass(ps, fig_square, fig_rect):
     plt.axis(ax)
     ps.savefig()
     
-    # Cut to the central frequency region
-    print('Double shape:', dh,dw)
-    print('Normal shape:', H, W)
-    clip = (dh - H)//2
-
-    shifted = np.fft.fftshift(Fdpix, axes=(0,))
-    shifted = shifted[clip:-clip, :-clip]
-    print('clipped shape:', shifted.shape)
-    Fdclip = np.fft.fftshift(shifted, axes=(0,))
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(
@@ -258,8 +258,6 @@ def lopass(ps, fig_square, fig_rect):
         vmin=-3, vmax=0, **fima)
     plt.title('log Fourier: clipped double-res pix')
     ps.savefig()
-
-    assert(Fdclip.shape == (H,W//2+1))
 
     ax = plt.axis()
     for k in range(1, amix.K):
