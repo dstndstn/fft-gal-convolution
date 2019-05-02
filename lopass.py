@@ -152,20 +152,18 @@ def lopass(ps, fig_square, fig_rect):
         plt.title('Fourier: tiny - mine')
         ps.savefig()
 
-    def diffshow(D, **ima):
-        mx = np.max(np.abs(D))
-        dimshow(D, vmin=-mx, vmax=mx, **ima)
-    
-    
+    # Switch to the square figure for plotting things in image space.
+    plt.figure(fig_square)
+
     plt.clf()
     dimshow(mine, vmin=0, vmax=mx, **ima)
     plt.title('Mine')
-    ps.savefig()
+    ps.savefig('mine-pix')
 
     plt.clf()
     dimshow(pix, vmin=0, vmax=mx, **ima)
     plt.title('Direct pixelized')
-    ps.savefig()
+    ps.savefig('naive-pix')
 
     plt.clf()
     dimshow(gpix, **ima)
@@ -173,10 +171,30 @@ def lopass(ps, fig_square, fig_rect):
     ps.savefig()
 
     plt.clf()
+    dimshow(dpix, **ima)
+    plt.title('Double-res direct (dpix)')
+    ps.savefig('dpix-pix')
+
+    diff = np.fft.fftshift(np.fft.irfft2(Fpix - Fmine, s=pix.shape))
+    plt.clf()
+    dimshow(diff, **ima)
+    plt.title('IFFT pix - mine')
+    ps.savefig('diff-pixmine-pix')
+    
+    diff = np.fft.fftshift(np.fft.irfft2(Fdclip - Fmine, s=pix.shape))
+    plt.clf()
+    dimshow(diff, **ima)
+    plt.title('IFFT double - mine')
+    ps.savefig('diff-dclipmine-pix')
+    
+    # Switch to the rectangular figure for plotting things in Fourier space.
+    plt.figure(fig_rect)
+
+    plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Fpix.real, Fpix.imag), axes=(0,)),
             vmin=0, vmax=1.1, **fima)
     plt.title('Fourier pixelized')
-    ps.savefig()
+    ps.savefig('naive-fourier')
 
     plt.clf()
     dimshow(np.log10(np.maximum(
@@ -184,7 +202,7 @@ def lopass(ps, fig_square, fig_rect):
         1e-6)),
         vmin=-3, vmax=0, **fima)
     plt.title('log fourier: pix')
-    ps.savefig()
+    ps.savefig('naive-logfourier')
 
     plt.clf()
     dimshow(np.log10(np.maximum(
@@ -193,31 +211,52 @@ def lopass(ps, fig_square, fig_rect):
     plt.title('log fourier: gpix')
     ps.savefig()
 
-    # Log Fourier plots: mine
+    plt.clf()
+    dimshow(np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
+            vmin=0, vmax=1.1, **fima)
+    plt.title('Fourier: mine')
+    ps.savefig('mine-fourier')
+
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
         1e-6)), vmin=-3, vmax=0, **fima)
     plt.title('log fourier: mine')
-    ps.savefig()
+    ps.savefig('mine-logfourier')
 
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Fpix.real - Fmine.real,
                                      Fpix.imag - Fmine.imag), axes=(0,)), **fima)
     plt.title('Fourier: pix - mine')
-    ps.savefig()
+    ps.savefig('diff-pixmine-fourier')
 
+    ax = plt.axis()
+    for k in range(2, amix.K):
+        Cinv = np.linalg.inv(amix.var[k,:,:])
+        Cinv *= (4. * np.pi**2)
+        e = EllipseE.fromCovariance(Cinv)
+        B = e.getRaDecBasis() * 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        plt.plot(xx,  0.5 * H + yy, 'r-', lw=2)
+        plt.plot(xx,  1.5 * H + yy, 'r--', lw=2)
+        plt.plot(xx, -0.5 * H + yy, 'r--', lw=2)
+    plt.axis(ax)
+    ps.savefig('diff-pixmine-fourier-ann')
+    
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Fgpix.real - Fmine.real,
                                      Fgpix.imag - Fmine.imag), axes=(0,)), **fima)
     plt.title('Fourier: gpix - mine')
     ps.savefig()
 
-    diff = np.fft.fftshift(np.fft.irfft2(Fpix - Fmine, s=pix.shape))
     plt.clf()
-    dimshow(diff, **ima)
-    plt.title('IFFT pix - mine')
-    ps.savefig()    
+    dimshow(np.fft.fftshift(np.hypot(Fdpix.real, Fdpix.imag), axes=(0,)), **fima)
+    plt.title('Fourier: double-res pix')
+    ps.savefig('dpix-fourier')
 
     plt.clf()
     dimshow(np.log10(np.maximum(
@@ -227,7 +266,7 @@ def lopass(ps, fig_square, fig_rect):
         1e-6)),
         vmin=-3, vmax=0, **fima)
     plt.title('log Fourier: double-res pix')
-    ps.savefig()
+    ps.savefig('dpix-logfourier')
 
     ax = plt.axis()
     for k in range(1, amix.K):
@@ -245,10 +284,16 @@ def lopass(ps, fig_square, fig_rect):
         plt.plot(xx, -0.5 * dh + yy, 'r--', lw=2)
     clip = (dh - H)//2
     plt.plot([0, FW, FW, 0], [clip, clip, dh-clip, dh-clip], 'k--')
-
     plt.axis(ax)
     ps.savefig()
     
+    plt.clf()
+    dimshow(np.fft.fftshift(
+            np.hypot(Fdclip.real, Fdclip.imag),
+            axes=(0,)), **fima)
+    plt.title('Fourier: clipped double-res pix')
+    ps.savefig('dclip-fourier')
+
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(
@@ -257,7 +302,7 @@ def lopass(ps, fig_square, fig_rect):
         1e-6)),
         vmin=-3, vmax=0, **fima)
     plt.title('log Fourier: clipped double-res pix')
-    ps.savefig()
+    ps.savefig('dclip-logfourier')
 
     ax = plt.axis()
     for k in range(1, amix.K):
@@ -286,19 +331,48 @@ def lopass(ps, fig_square, fig_rect):
                                      Fdclip.imag - Fmine.imag), axes=(0,)),
                                      vmin=0, vmax=mx/2, **fima)
     plt.title('Fourier: double - mine')
-    ps.savefig()
+    ps.savefig('diff-dclipmine-fourier')
 
-    diff = np.fft.fftshift(np.fft.irfft2(Fdclip - Fmine, s=pix.shape))
-    plt.clf()
-    dimshow(diff, **ima)
-    plt.title('IFFT double - mine')
-    ps.savefig()    
+    ax = plt.axis()
+    for k in range(1, amix.K):
+        Cinv = np.linalg.inv(amix.var[k,:,:])
+        Cinv *= (4. * np.pi**2)
+        e = EllipseE.fromCovariance(Cinv)
+        B = e.getRaDecBasis() * 3600.
+        angle = np.linspace(0, 2.*np.pi, 90)
+        cc = np.cos(angle)
+        ss = np.sin(angle)
+        xx = B[0,0] * cc + B[0,1] * ss
+        yy = B[1,0] * cc + B[1,1] * ss
+        #plt.plot(xx, 0.5*H + 0*dh + yy, 'r-',  lw=2)
+        plt.plot(xx, 0.5*H + 1*dh + yy, 'r--', lw=2)
+        plt.plot(xx, 0.5*H - 1*dh + yy, 'r--', lw=2)
+    plt.axis(ax)
+    ps.savefig('diff-dclipmine-fourier-ann')
+
     
 
 
+class MyPlotSequence(PlotSequence):
+    def __init__(self, basefn, named, **kwargs):
+        super(MyPlotSequence,self).__init__(basefn, **kwargs)
+        self.named = named
+    def savefig(self, *args):
+        if self.named:
+            if len(args)==1:
+                name, = args
+                for suff in self.suffixes:
+                    fn = self.basefn+'-' + name + '.' + suff
+                    plt.savefig(fn)
+                    print('saved', fn)
+            else:
+                print('Not saving unnamed plot')
+        else:
+            super(MyPlotSequence, self).savefig()
+
 if __name__ == '__main__':
     disable_galaxy_cache()
-    ps = PlotSequence('lopass2')
+    ps = MyPlotSequence('lopass2', False)
 
     fig_square = fig_rect = 1
 

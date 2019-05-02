@@ -513,7 +513,8 @@ I first demonstrate how this \trick\ avoids the high-frequency
 aliasing that results if we na\"ively evaluate the galaxy profile in
 pixel space.  As shown in \figref{fig:aliasing}, evaluating even a
 rather broad exponential galaxy profile na\"ively in pixel space
-results in high-frequency aliasing.
+results in high-frequency aliasing because the galaxy core is
+under-sampled.
 
 
 \begin{figure}
@@ -522,22 +523,34 @@ results in high-frequency aliasing.
       %
       & FSGM galaxy FT & log(FSGM galaxy FT) & Naive $-$ FSGM \\
       &
-      \includegraphics[height=0.24\textwidth]{lopass-mine}
+      \includegraphics[height=0.24\textwidth]{lopass-mine-fourier}
       &
-      \includegraphics[height=0.24\textwidth]{lopass-mine-log}
+      \includegraphics[height=0.24\textwidth]{lopass-mine-logfourier}
       &
-      \includegraphics[height=0.24\textwidth]{lopass-diff}
+      \includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-fourier}
       \\
       %
-      Naive galaxy & Na\"ive galaxy FT & log(Na\"ive galaxy FT) & Naive $-$ FSGM \\
+      Naive galaxy & Na\"ive galaxy FT & log(Na\"ive galaxy FT) & Naive $-$ FSGM
+      \\
       %
       \includegraphics[height=0.24\textwidth]{lopass-naive-pix}
       &
-      \includegraphics[height=0.24\textwidth]{lopass-naive}
+      \includegraphics[height=0.24\textwidth]{lopass-naive-fourier}
       &
-      \includegraphics[height=0.24\textwidth]{lopass-naive-log}
+      \includegraphics[height=0.24\textwidth]{lopass-naive-logfourier}
       &
-      \includegraphics[height=0.24\textwidth]{lopass-diff-ell}
+      \includegraphics[height=0.24\textwidth]{lopass-diff-pixmine-fourier-ann}
+      \\
+      %%%
+      %
+      \includegraphics[height=0.24\textwidth]{lopass-dpix-pix}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-dclip-fourier}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-dclip-logfourier}
+      &
+      \includegraphics[height=0.24\textwidth]{lopass-diff-dclipmine-fourier}
+      \\
     \end{tabular}
     \caption{
       \label{fig:aliasing}
