@@ -32,7 +32,12 @@ def lopass(ps, fig_square, fig_rect):
     pixel-space convolution, where the naive (undersampled) one is
     shown to have aliased high-frequency power.
     '''
-    H = W = pH = pW = 32
+    ima = dict(ticks=False, cmap=antigray)
+    fima = dict(ticks=False, cmap='Blues')
+
+    H = W = 32
+    # width of real Fourier transforms
+    FW = W//2+1
     w = np.fft.rfftfreq(W)
     v = np.fft.fftfreq(H)
 
@@ -41,65 +46,38 @@ def lopass(ps, fig_square, fig_rect):
     egal = EllipseE.fromRAbPhi(4., 0.3, theta)
     gal = ExpGalaxy(PixPos(0,0), Flux(100.), egal)
 
-    # Instead of actually rendering the naive model, we fake it using a
-    # PSF with a tiny width.
-    data = np.zeros((H,W), np.float32)
-    tinypsf = NCircularGaussianPSF([1e-6], [1.])
-    img = Image(data=data, invvar=np.ones_like(data), psf=tinypsf)
+    # The matching naive galaxy profile rendering function
+    # (SDSS) exp model
+    naive_func = hogg_exp
 
+    # The matching Gaussian mixture model
+    from tractor.mixture_profiles import get_exp_mixture
+    expmix = get_exp_mixture()
+    gaussian_mixture = expmix
+
+    # While investigating this figure, I tried a few different methods:
+    # - pix = naive: evaluate the Galaxy profile in pixel space
+    # - mine = Fourier space Gaussian
+    # - gpix = evaluate the MoG approximate galaxy profile in pixel space
+    # - tiny = render using my method and a tiny Gaussian PSF
+    # - dpix = evaluate the galaxy profile at double resolution
+    #   - dclip = dpix, but clipped back to normal size
+    #
+    # "tiny" is basically pointless, but kept for historical interest
+
+    data = np.zeros((H,W), np.float32)
+    img = Image(data=data, invvar=np.ones_like(data)) #, psf=tinypsf)
+    
     # Compute our galaxy FFT
     amix = gal._getAffineProfile(img, 0, 0)
     Fmine = amix.getFourierTransform(w, v)
+    mine = np.fft.fftshift(np.fft.irfft2(Fmine, s=(H,W)))
+    mx = mine.max()
 
-    ima = dict(ticks=False, cmap=antigray)
-    fima = dict(ticks=False, cmap='Blues')
-    rima = dict(ticks=False, cmap='Greens')
-    iima = dict(ticks=False, cmap='Reds')
-
-    def diffshow(D, **ima):
-        mx = np.max(np.abs(D))
-        dimshow(D, vmin=-mx, vmax=mx, **ima)
-    
-    # Move galaxy to center of image.
-    gal.pos.x = pH/2.
-    gal.pos.y = pW/2.
-
-    tinyimg = np.zeros((pH,pW))
-    tinypatch = gal.getModelPatch(img)
-    print('Tinypatch:', tinypatch.shape)
-    tinypatch.addTo(tinyimg)
-
-    # Galaxy conv tiny PSF
-    # Rotated to be zero-centered.
-    Ftiny = np.fft.rfft2(np.fft.fftshift(tinyimg))
-    tH,tW = tinyimg.shape
-    Ftiny /= (tH * np.pi)
-
-    plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
-            vmin=0, vmax=1.1, **fima)
-    plt.title('Fourier space, tiny psf')
-    ps.savefig()
-
-    mine = np.fft.fftshift(np.fft.irfft2(Fmine, s=(pH,pW)))
-    tiny = np.fft.fftshift(np.fft.irfft2(Ftiny, s=(tH,tW)))
-    mx = max(mine.max(), tiny.max())
-
-    plt.clf()
-    dimshow(mine, vmin=0, vmax=mx, **ima)
-    plt.title('Mine')
-    ps.savefig()
-    
-    plt.clf()
-    dimshow(tiny, vmin=0, vmax=mx, **ima)
-    plt.title('Tiny psf')
-    ps.savefig()
-
-    hh,ww = tiny.shape
-    # Rendered at pixel centers
-    xx,yy = np.meshgrid(np.arange(0, ww), np.arange(0, hh))
-    midx = ww//2
-    midy = hh//2
+    # "pix" = "naive": galaxy profile rendered at pixel centers
+    xx,yy = np.meshgrid(np.arange(0, H), np.arange(0, H))
+    midx = W//2
+    midy = H//2
     dx,dy = xx - midx, yy - midy
     # -get the matrix that takes pixels to r_e coordinates
     cd = np.eye(2) / 3600.
@@ -107,37 +85,89 @@ def lopass(ps, fig_square, fig_rect):
     re_coords = Tinv.dot([dx.ravel(), dy.ravel()])
     re_x,re_y = re_coords[0,:], re_coords[1,:]
     re = np.hypot(re_x, re_y)
-    re = re.reshape(hh, ww)
-    # Evaluate the (SDSS) exp model
-    pix = hogg_exp(re)
+    re = re.reshape(H, W)
+    pix = naive_func(re)
     pix /= pix.sum()
+    Fpix = np.fft.rfft2(np.fft.fftshift(pix))
+
+    # "gpix" = evaluate our Gaussian Mixture Model approximation to the exp profile.
+    # (notice that this re-uses "re_coords" from "pix")
+    gpix = gaussian_mixture.evaluate(re_coords.T)
+    gpix = gpix.reshape(H, W)
+    gpix /= gpix.sum()
+    Fgpix = np.fft.rfft2(np.fft.fftshift(gpix))
     
+    # "dpix" = rendered at double resolution
+    xx,yy = np.meshgrid(np.arange(0, W, 0.5), np.arange(0, H, 0.5))
+    dx,dy = xx - midx, yy - midy
+    re_coords = Tinv.dot([dx.ravel(), dy.ravel()])
+    re_x,re_y = re_coords[0,:], re_coords[1,:]
+    re = np.hypot(re_x, re_y)
+    re = re.reshape(H*2,W*2)
+    dpix = naive_func(re)
+    dpix /= dpix.sum()
+    Fdpix = np.fft.rfft2(np.fft.fftshift(dpix))
+    
+
+    
+    
+    if False:
+        # "tiny": render with a tiny PSF
+        # Move galaxy to center of image.
+        gal.pos.x = H/2.
+        gal.pos.y = W/2.
+        tinypsf = NCircularGaussianPSF([1e-6], [1.])
+        tiny = np.zeros((H,W))
+        gal.getModelPatch(img).addTo(tiny)
+        Ftiny = np.fft.rfft2(np.fft.fftshift(tiny))
+        Ftiny /= (H * np.pi)
+        plt.clf()
+        dimshow(np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
+                vmin=0, vmax=1.1, **fima)
+        plt.title('Fourier space, tiny psf')
+        ps.savefig()
+        plt.clf()
+        dimshow(tiny, vmin=0, vmax=mx, **ima)
+        plt.title('Tiny psf')
+        ps.savefig()
+        plt.clf()
+        dimshow(np.log10(np.maximum(
+            np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
+            1e-6)), vmin=-3, vmax=0, **fima)
+        plt.title('log fourier: tiny')
+        ps.savefig()
+        plt.clf()
+        dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fmine.real,
+                                         Ftiny.imag - Fmine.imag), axes=(0,)), **fima)
+        plt.title('Fourier: tiny - mine')
+        ps.savefig()
+
+    def diffshow(D, **ima):
+        mx = np.max(np.abs(D))
+        dimshow(D, vmin=-mx, vmax=mx, **ima)
+    
+    
+    plt.clf()
+    dimshow(mine, vmin=0, vmax=mx, **ima)
+    plt.title('Mine')
+    ps.savefig()
+
     plt.clf()
     dimshow(pix, vmin=0, vmax=mx, **ima)
     plt.title('Direct pixelized')
     ps.savefig()
-
-    # Also evaluate our Gaussian Mixture Model approximation to the exp profile.
-    from tractor.mixture_profiles import get_exp_mixture
-    expmix = get_exp_mixture()
-    gpix = expmix.evaluate(re_coords.T)
-    gpix = gpix.reshape(hh,ww)
-    gpix /= gpix.sum()
-    Fgpix = np.fft.rfft2(np.fft.fftshift(gpix))
 
     plt.clf()
     dimshow(gpix, **ima)
     plt.title('Pixelized Gaussians (gpix)')
     ps.savefig()
 
-    Fpix = np.fft.rfft2(np.fft.fftshift(pix))
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Fpix.real, Fpix.imag), axes=(0,)),
             vmin=0, vmax=1.1, **fima)
     plt.title('Fourier pixelized')
     ps.savefig()
 
-    print('Log Fourier transform of exp')
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(np.hypot(Fpix.real, Fpix.imag), axes=(0,)),
@@ -146,20 +176,10 @@ def lopass(ps, fig_square, fig_rect):
     plt.title('log fourier: pix')
     ps.savefig()
 
-    # Log Fourier
-    plt.clf()
-    dimshow(np.log10(np.maximum(
-        np.fft.fftshift(np.hypot(Ftiny.real, Ftiny.imag), axes=(0,)),
-        1e-6)),
-        vmin=-3, vmax=0, **fima)
-    plt.title('log fourier: tiny')
-    ps.savefig()
-
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(np.hypot(Fgpix.real, Fgpix.imag), axes=(0,)),
-        1e-6)),
-        vmin=-3, vmax=0, **fima)
+        1e-6)), vmin=-3, vmax=0, **fima)
     plt.title('log fourier: gpix')
     ps.savefig()
 
@@ -167,11 +187,10 @@ def lopass(ps, fig_square, fig_rect):
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(np.hypot(Fmine.real, Fmine.imag), axes=(0,)),
-        1e-6)),
-        vmin=-3, vmax=0, **fima)
+        1e-6)), vmin=-3, vmax=0, **fima)
     plt.title('log fourier: mine')
     ps.savefig()
-    
+
     plt.clf()
     dimshow(np.fft.fftshift(np.hypot(Fpix.real - Fmine.real,
                                      Fpix.imag - Fmine.imag), axes=(0,)), **fima)
@@ -184,31 +203,12 @@ def lopass(ps, fig_square, fig_rect):
     plt.title('Fourier: gpix - mine')
     ps.savefig()
 
-    plt.clf()
-    dimshow(np.fft.fftshift(np.hypot(Ftiny.real - Fmine.real,
-                                     Ftiny.imag - Fmine.imag), axes=(0,)), **fima)
-    plt.title('Fourier: tiny - mine')
-    ps.savefig()
-
     diff = np.fft.fftshift(np.fft.irfft2(Fpix - Fmine, s=pix.shape))
     plt.clf()
     dimshow(diff, **ima)
     plt.title('IFFT pix - mine')
     ps.savefig()    
 
-    # Rendered at double resolution
-    # --- exactly where do we want to put the sub-pixel positions?
-    xx,yy = np.meshgrid(np.arange(0, ww, 0.5), np.arange(0, hh, 0.5))
-    dx,dy = xx - midx, yy - midy
-    re_coords = Tinv.dot([dx.ravel(), dy.ravel()])
-    re_x,re_y = re_coords[0,:], re_coords[1,:]
-    re = np.hypot(re_x, re_y)
-    re = re.reshape(hh*2,ww*2)
-    # Evaluate the (SDSS) exp model
-    dpix = hogg_exp(re)
-    dpix /= dpix.sum()
-    
-    Fdpix = np.fft.rfft2(np.fft.fftshift(dpix))
     plt.clf()
     dimshow(np.log10(np.maximum(
         np.fft.fftshift(
@@ -219,6 +219,7 @@ def lopass(ps, fig_square, fig_rect):
     plt.title('log Fourier: double-res pix')
     ps.savefig()
 
+    dh,dw = Fdpix.shape
     ax = plt.axis()
     for k in range(1, amix.K):
         Cinv = np.linalg.inv(amix.var[k,:,:])
@@ -230,29 +231,20 @@ def lopass(ps, fig_square, fig_rect):
         ss = np.sin(angle)
         xx = B[0,0] * cc + B[0,1] * ss
         yy = B[1,0] * cc + B[1,1] * ss
-        #xx *= 2
-        #yy *= 2
-        hh,ww = Fdpix.shape
-        plt.plot(xx,  0.5 * hh + yy, 'r-', lw=2)
-        plt.plot(xx,  1.5 * hh + yy, 'r--', lw=2)
-        plt.plot(xx, -0.5 * hh + yy, 'r--', lw=2)
-
-    dh,dw = Fdpix.shape
-    mh,mw = Fmine.shape
-    clip = (dh - mh)//2
-    plt.plot([0, mw, mw, 0], [clip, clip, dh-clip, dh-clip], 'k--')
+        plt.plot(xx,  0.5 * dh + yy, 'r-', lw=2)
+        plt.plot(xx,  1.5 * dh + yy, 'r--', lw=2)
+        plt.plot(xx, -0.5 * dh + yy, 'r--', lw=2)
+    clip = (dh - H)//2
+    plt.plot([0, FW, FW, 0], [clip, clip, dh-clip, dh-clip], 'k--')
 
     plt.axis(ax)
     ps.savefig()
     
     # Cut to the central frequency region
-
-    dh,dw = Fdpix.shape
-    mh,mw = Fmine.shape
     print('Double shape:', dh,dw)
-    print('Normal shape:', mh,mw)
-    clip = (dh - mh)//2
-    
+    print('Normal shape:', H, W)
+    clip = (dh - H)//2
+
     shifted = np.fft.fftshift(Fdpix, axes=(0,))
     shifted = shifted[clip:-clip, :-clip]
     print('clipped shape:', shifted.shape)
@@ -267,6 +259,8 @@ def lopass(ps, fig_square, fig_rect):
     plt.title('log Fourier: clipped double-res pix')
     ps.savefig()
 
+    assert(Fdclip.shape == (H,W//2+1))
+
     ax = plt.axis()
     for k in range(1, amix.K):
         Cinv = np.linalg.inv(amix.var[k,:,:])
@@ -278,11 +272,9 @@ def lopass(ps, fig_square, fig_rect):
         ss = np.sin(angle)
         xx = B[0,0] * cc + B[0,1] * ss
         yy = B[1,0] * cc + B[1,1] * ss
-        hh,ww = Fdpix.shape
-        ch,cw = Fdclip.shape
-        plt.plot(xx, 0.5*ch + 0*hh + yy, 'r-', lw=2)
-        plt.plot(xx, 0.5*ch + 1*hh + yy, 'r--', lw=2)
-        plt.plot(xx, 0.5*ch - 1*hh + yy, 'r--', lw=2)
+        plt.plot(xx, 0.5*H + 0*dh + yy, 'r-',  lw=2)
+        plt.plot(xx, 0.5*H + 1*dh + yy, 'r--', lw=2)
+        plt.plot(xx, 0.5*H - 1*dh + yy, 'r--', lw=2)
     plt.axis(ax)
     ps.savefig()
 
