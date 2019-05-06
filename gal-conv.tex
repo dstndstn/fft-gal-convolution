@@ -44,6 +44,9 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 
 \newcommand{\transpose}[1]{#1^{T}}
 \newcommand{\CD}{C\!D}
+\newcommand{\pixelfx}{\nu}
+\newcommand{\pixelfy}{\omega}
+\newcommand{\pixelfreqs}{$(\nu,\, \omega)$}
 
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \newcommand{\gray}[1]{\textcolor{gray}{#1}}
@@ -73,12 +76,12 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   I present a \trick\ for the fast convolution of a model galaxy
   profile by a point-spread function (PSF) model represented as a pixel grid.
   The \trick\ relies upon two
-  observations: First, most simple galaxy profiles of common interest
+  observations: First, most simple radial galaxy profiles of common interest
   (deVaucouleurs, exponential, \sersic) can be approximated as
   mixtures of Gaussians.  Second, the Fourier transform of a Gaussian
   is a Gaussian, thus the Fourier transform of a mixture-of-Gausssian
-  approximation of a galaxy can be directly evaluated in Fourier
-  space.
+  approximation of a galaxy can be directly evaluated as a mixture of Gaussians
+  in Fourier space.
   %
   We therefore perform the PSF--galaxy convolution in Fourier space,
   using the FFT for the PSF model, direct evaluation of the Fourier
@@ -146,12 +149,15 @@ four times the native pixel resolution, will jump in quarter-pixel
 steps.  This occurs because the ``above the atmosphere'' image is
 undersampled; a point source has power at all frequencies, and
 rendering it at the native pixel scale causes the high-frequency power
-to alias into the band.
-\textbf{ADD A FIGURE ILLUSTRATING THIS!}
+to alias into the band, causing errors in the rendering.
 
 
 In \project{the Tractor}, we have previously taken the approach of
-using mixture-of-Gaussian approximations for \emph{both} the PSF and
+using mixture-of-Gaussian approximations\footnote{
+  A \emph{mixture of Gaussians} is a weighted sum of $N$ Gaussian
+  components, $\sum_{i=1}^N a_i \, \mathcal{N}(\mu_i, \Sigma_i)$
+  with $\sum_i a_i = 1$.}
+for \emph{both} the PSF and
 the model galaxy profiles.  The galaxy profile approximations are
 presented in \cite{moggalaxy}, and we use direct chi-squared
 minimization to fit mixture-of-Gaussian models to pixelized PSF
@@ -171,16 +177,18 @@ is, they already include the effect of being sampled by square pixels.
 %model is a sampling of an underlying smooth surface.
 
 The galaxy models considered here are simple elliptical isophotes with
-surface brightness defined by
+surface brightness defined, as a functional of radius $r$, by
 \begin{equation}
   I(r) \propto \exp(- k(n) \, r^{1/n})
 \end{equation}
 where we can fix $n=1$ (exponential profile), $n=4$ (deVaucouleurs
 profile), or fit for $n$ (\sersic\ profile).  It is also common to fit
 for a linear combination of $n=1$ and $n=4$ profiles (``bulge-disk
-decomposition'' or ``composite galaxy'').  The elliptical shape can be
-represented in terms of effective radius, axis ratio, and position
-angle, or a variety of other ellipse representations.
+decomposition'' or ``composite galaxy profile'').  The term $k(n)$ is
+a scalar, usually defined for each $n$ so that half the light falls
+within $r \le 1$. The elliptical shape can be represented in terms of
+effective radius, axis ratio, and position angle, or a variety of
+other ellipse representations.
 
 
 \begin{figure}
@@ -188,7 +196,7 @@ angle, or a variety of other ellipse representations.
     \begin{tabular}{@{}c@{\hspace{1ex}}c@{\hspace{1ex}}c@{}}
       % Pixel Space & Fourier Space (Analytic) & Fourier Space \\
       %
-      \cline{1-1} \cline{2-2} \cline{3-3}
+      %\cline{1-1} \cline{2-2} \cline{3-3}
       %
       Step 1: PSF
       &
@@ -270,23 +278,26 @@ angle, or a variety of other ellipse representations.
     FFT of the pixelized PSF model.  Since the PSF model is
     purely real, we show only half the symmetric Fourier transform. The FFT is
     complex; we show here the absolute value.
+    By the assumption that the PSF is well-sampled, all Fourier components outside
+    this frequency box are zero.
     % 
     \textbf{Middle-left}: Pixel-space galaxy profile,
     Mixture-of-Gaussians (MoG) approximation.  The profile would be
-    undersampled if evaluated in pixel space.
+    undersampled if evaluated in pixel space; in this \trick, the galaxy model
+    is never evaluated in pixel space.
     % 
     \textbf{Middle}: The mixture-of-Gaussians galaxy approximation in
     Fourier space.
     %
     \textbf{Middle-right}: The discrete Fourier-space representation of the
-    galaxy profile, evaluated directly in Fourier space.
+    galaxy profile, evaluated directly in Fourier space by computing the value
+    of each of the Gaussian components.
     %
     \textbf{Bottom-right}: Product of the FFT of the PSF and the
     Fourier transform of the galaxy model.
     %
-    \textbf{Bottom-left}: The result: the galaxy model convolved by the
-    PSF, in pixel space.  This is computed by inverse-FFT of the
-    bottom-right panel.
+    \textbf{Bottom-left}: Taking the inverse FFT of the bottom-right panel,
+    we achieve the result: the galaxy model convolved by the PSF, in pixel space.
   }
 \end{figure}
 
@@ -317,28 +328,35 @@ We will elaborate on each step of the \trick\ below.  In summary:
   model in a zero-padded image of this size.
 \item Compute the Fourier Transform of the padded PSF model via the
   Fast Fourier Transform (FFT),
-  recording the frequencies $(v, w)$ of the FFT terms.
+  recording the frequencies \pixelfreqs\ of the FFT terms.
 \item Transform the mixture-of-Gaussians approximation of the model
   galaxy through an ellipticity matrix and the local image World
   Coordinate System (WCS) matrix to get pixel-space Gaussians
-  (also including sub-pixel shifts).
-\item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space.
-\item Evaluate the Fourier-space Gaussians on the frequency grid $(v, w)$.
-\item Multiply the PSF and galaxy Fourier transforms and inverse-FFT
+  (optionally including sub-pixel shifts).
+\item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space,
+  analytically.
+\item Evaluate the Fourier-space Gaussians on the frequency grid \pixelfreqs.
+\item Multiply the PSF and galaxy Fourier transforms, then inverse-FFT
   back to pixel space.
+\item Optionally, use Lanczos interpolation to perform sub-pixel shifting, if not
+  done in Fourier space.
 \end{enumerate}
 %We will elaborate on each step below.
 
 The process is illustrated in Figure \ref{fig:example}.  Example code
 is available alongside the paper source,\footnote{ Available at
-  \niceurl{http://github.com/dstndstn/fft-gal-convolution}.}  and the
+  \niceurl{https://github.com/dstndstn/fft-gal-convolution}.}  and the
 method is also implemented in \project{the Tractor} code.\footnote{%
   Available at
-  \niceurl{http://github.com/dstndstn/tractor}.}
+  \niceurl{https://github.com/dstndstn/tractor}.}
 
 Step 1, choosing the desired output image size, depends on the size of
 the PSF model as well as the galaxy.  If the chosen size is too small,
-wrap-around will occur since the FFT is periodic; see Figure \ref{fig:wrap}.
+wrap-around aliasing will occur since the FFT is periodic.  We have an
+approach to minimize this effect, discussed below and shown in Figure
+\ref{fig:wrap}, but it remains necessary to choose a large enough
+output image to capture a sufficient fraction of the light from the
+galaxy model.
 
 In Step 2, we compute the FFT of the PSF.  If the PSF is constant
 across the image, this FFT need only be computed once.  Alternatively,
@@ -358,8 +376,6 @@ radius into pixel units.  This includes an ellipse transformation
 by galaxy position angle), plus a transformation into pixel
 coordinates based on a locally-linear approximation of the image's
 World Coordinate System.
-% We split the pixel position of the galaxy center into integer and
-% fractional parts.
 The result is a pixel-space mixture-of-Gaussians representation of the
 galaxy.
 
@@ -401,7 +417,7 @@ be transformed into pixel space by computing
 C &= A \, V \transpose{A}
 \label{eq:vpix}
 \end{align}
-where we will use isotropic variances $V = v \bm{I}$.
+where we will use isotropic variances $V = v \bm{I}$ for the galaxy profiles.
 When we write out this matrix in full, we find that the $\cos{\theta}$
 and $\sin{\theta}$ terms always appear in pairs, so we can avoid
 computing these trigonometric functions explicitly in the above.  See
@@ -421,7 +437,8 @@ in pixel space is defined by
 g(\bm{x}) = \frac{1}{2 \pi \sqrt{\det(C)}}
 \exp\left( -\frac{1}{2} \transpose{\bm{x}} C^{-1} \bm{x} \right)
 \end{equation}
-which becomes, writing out the vector $\bm{x}$ as $\transpose{(x,y)}$
+which becomes, writing out the pixel coordinate vector $\bm{x}$
+as $\transpose{(x,y)}$
 and symmetric covariance $C = \bigl(\begin{smallmatrix}
 a&b \\ b&d
 \end{smallmatrix} \bigr)$,
@@ -432,32 +449,36 @@ g(x, y) = \frac{1}{2 \pi \sqrt{a d - b^2}}
 \right) \quad .
 \end{equation}
 %
-The Fourier Transform of the shifted Gaussian $g(x - x_0, y - y_0)$ is defined as
+
+We can perform sub-pixel shifts of the galaxy model either in Fourier
+space, or by Lanczos convolution in pixel space.  If we choose to
+shift in Fourier space, the Fourier Transform of the shifted Gaussian
+$g(x - x_0, y - y_0)$ is defined as
 \begin{equation}
-G(v,w) =
+G(\pixelfx,\, \pixelfy) =
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
-g(x - x_0, y - y_0) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
-\quad .
+g(x - x_0, y - y_0) e^{-2 \pi i (\pixelfx x + \pixelfy y)} \, \mathrm{d}x \, \mathrm{d}y
+\quad ,
 \end{equation}
-We use the shift theorem to move the centroid to $\mu = (x_0, y_0)$
+and we use the shift theorem to move the centroid to $\mu = (x_0, y_0)$
 in pixel space via a phase term in Fourier space;
 \begin{equation}
-G(v, w) =
-e^{-2 \pi i (x_0 v + y_0 w)}
+G(\pixelfx,\, \pixelfy) =
+e^{-2 \pi i (x_0 \pixelfx + y_0 \pixelfy)}
 \int\limits_{-\infty}^{\infty}
 \int\limits_{-\infty}^{\infty}
-g(x, y) e^{-2 \pi i (v x + w y)} \, \mathrm{d}x \, \mathrm{d}y
+g(x, y) e^{-2 \pi i (\pixelfx x + \pixelfy y)} \, \mathrm{d}x \, \mathrm{d}y
 \end{equation}
 %
 which, plugging in the covariance matrix $C$, works out to
 \begin{equation}
-G(v,w) =
-e^{-2 \pi i (x_0 v + y_0 w)}
-e^{-2 \pi^2 (a v^2 + 2 b v w + d w^2)}
+G(\pixelfx,\, \pixelfy) =
+e^{-2 \pi i (x_0 \pixelfx + y_0 \pixelfy)}
+e^{-2 \pi^2 (a \pixelfx^2 + 2 b \pixelfx \pixelfy + d \pixelfy^2)}
 \label{eq:onegaussian}
 \end{equation}
-which can easily be evaluated on a grid of frequencies $(v, w)$.  This
+which can easily be evaluated on a grid of frequencies \pixelfreqs.  This
 is the expression we must evaluate to produce the Fourier transform of
 a single Gaussian component of a galaxy model.  Recall that the values
 $a$, $b$ and $d$ are simple manipulations of the galaxy radius and
@@ -479,14 +500,19 @@ m(x,y) = \sum_i A_i \, g_i(x, y)
 \end{equation}
 is therefore
 \begin{equation}
-M(v, w) = e^{-2 \pi i (x_0 v + y_0 w)}
+M(\pixelfx,\, \pixelfy) = e^{-2 \pi i (x_0 \pixelfx + y_0 \pixelfy)}
 \sum_i A_i \,
-e^{-2 \pi^2 (a_i v^2 + 2 b_i v w + d_i w^2)}
+e^{-2 \pi^2 (a_i \pixelfx^2 + 2 b_i \pixelfx \pixelfy + d_i \pixelfy^2)}
 \quad .
 \end{equation}
 
+In practice, computing the phase shift in Fourier space requires many
+$\sin$ and $\cos$ operations, so in \project{the Tractor} we instead
+use Lanczos interpolation to perform sub-pixel shifting of the final
+pixel-space model.
+
 In Step 5 of our \trick, we directly evaluate these Gaussians in Fourier
-space, on the same discrete frequency grid $(v, w)$ used for the FFT
+space, on the same discrete frequency grid \pixelfreqs\ used for the FFT
 of the PSF.  This has interesting properties.  By taking the Fourier
 transform, we are effectively assuming that the PSF model is well
 sampled, thus has zero power outside the frequency grid of the FFT.
@@ -623,19 +649,19 @@ under-sampled.
 \end{figure}
 
 
-Next, in \figref{fig:psfmog} I show the results of using my method
-versus our previous approach of using a mixture-of-Gaussians
-approximation for the PSF.  We would expect to see the greatest
-differences for compact galaxies, and for PSFs that have asymmetries
-or broad wings that tend not to be fit well by small mixtures of
-Gaussians.
-
-\begin{figure}
-  \begin{center}
-  \end{center}
-  \caption{\label{fig:psfmog}
-  }
-\end{figure}
+% Next, in \figref{fig:psfmog}, I show the results of using my method
+% versus our previous approach of using a mixture-of-Gaussians
+% approximation for the PSF.  We would expect to see the greatest
+% differences for compact galaxies, and for PSFs that have asymmetries
+% or broad wings that tend not to be fit well by small mixtures of
+% Gaussians.
+% 
+% \begin{figure}
+%   \begin{center}
+%   \end{center}
+%   \caption{\label{fig:psfmog}
+%   }
+% \end{figure}
 
 \section{Discussion}
 
@@ -869,7 +895,7 @@ $8$ & $40215071$
 \end{center}
 Fits for other numbers of mixture components are available in
 \cite{moggalaxy}.  The code used to compute these values is publicly
-available at \niceurl{http://github.com/davidwhogg/TheTractor}.
+available at \niceurl{https://github.com/davidwhogg/TheTractor}.
 
 \begin{thebibliography}
 
