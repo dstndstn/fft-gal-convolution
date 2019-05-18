@@ -1,4 +1,4 @@
-% Copyright 2015, 2016 Dustin Lang (U Toronto).
+% Copyright 2015--2019, Dustin Lang (Perimeter Institute).
 % All rights reserved.
 
 % TO-DO:
@@ -10,8 +10,6 @@
 %   than the native pixel grid, as per Schlegel's comments
 
 % - \transpose symbol
-
-% - real-data comparison between mixture-of-Gaussians and this method
 
 
 \documentclass[11pt,preprint]{aastex}
@@ -666,15 +664,19 @@ under-sampled.
 \section{Discussion}
 
 Our \trick\ is implemented in \project{the Tractor} code and has been
-used at scale in the data reduction of the Dark Energy Camera Legacy
-Survey Data Release 2 (Schlegel, Dey \etal, in prep.).  In our tests, we
-have found the speed to be comparable to that of a 3-component
-mixture-of-Gaussians representation of the PSF.  The majority of the
-computational cost is in evaluating the \emph{exp} function rather
-than in the FFT or inverse-FFT, so fast \emph{exp} approximations\footnote{%
-For example, \niceurl{https://github.com/herumi/fmath} as used in
-\project{ngmix}, \niceurl{https://github.com/esheldon/ngmix}.}
-should provide significant speedups.
+used at scale in the data reduction for the DESI Legacy Imaging Surveys
+\citep{dey}, which include $15,000$ square degrees of imaging data from
+three different cameras (the Dark Energy Camera \citep{decam},
+the 90Prime camera \citep{90prime}, and the Mosaic3 camera \citep{mosaic3}),
+measuring over one billion sources through forward modeling.
+%
+
+A significant portion of the computational cost of this \trick\ is in
+evaluating the \emph{exp} function rather than in the FFT or
+inverse-FFT, so fast \emph{exp} approximations\footnote{For example,
+  \niceurl{https://github.com/herumi/fmath} as used in
+  \project{ngmix}, \niceurl{https://github.com/esheldon/ngmix}.}
+could provide significant speedups.
 
 %http://homepage1.nifty.com/herumi/soft/fmath.html
 
@@ -700,6 +702,8 @@ should provide significant speedups.
 }
 \end{figure}
 
+
+%%% FIXME
 When using this \trick, one must choose the image patch size in which
 to embed the PSF; the resulting convolved image will be the same size.
 The image size chosen must be large enough to contain the convolved
@@ -708,6 +712,7 @@ periodic, so any part of the convolved galaxy profile that lies
 outside the image will alias into the image.  This is
 illustrated in Figure \ref{fig:wrap}.
 
+%%% FIXME
 In order to handle sub-pixel shifts in the galaxy position, we have
 added a Fourier phase term in \eqnref{eq:onegaussian}, though one
 could also omit this phase term and instead shift the resulting
@@ -723,10 +728,9 @@ I thank Erin Sheldon (BNL),
 David W.~Hogg (NYU), David J.~Schlegel (LBL), and John Moustakas (Siena)
 for helpful discussion and comments on this manuscript.
 
-The Dunlap Institute is funded through an endowment established by the
-David Dunlap family and the University of Toronto.
-
-
+Research at Perimeter Institute is supported by the Government of
+Canada through Industry Canada and by the Province of Ontario through
+the Ministry of Research \& Innovation.
 
 
 \appendix
@@ -916,6 +920,21 @@ Astronomy \& Astrophysics,
 395, 1077;
 \arxiv{astro-ph/0207413}
 
+\bibitem[Dey \etal(2016)]{mosaic3}
+  Dey,~A., Rabinowitz,~D. \etal, 2016,
+  in Proc.~SPIE, 9908, Ground-based and Airborne
+  Instrumentation for Astronomy VI, 99082C
+
+\bibitem[Dey \etal(2019)]{dey}
+  Dey,~A., Schlegel,~D.J., \etal, 2019,
+  \aj, 157, 168;
+  \arxiv{1804.08657}
+
+\bibitem[Flaugher \etal(2015)]{decam}
+  Flaugher,~B. \etal, 2015,
+  \aj, 150, 150;
+  \arxiv{1504.02900}
+  
 \bibitem[Hogg \& Lang(2013)]{moggalaxy}
 Hogg,~D.~W. \& Lang,~D., 2013, \pasp, 125, 719;
 \arxiv{1210.6563}
@@ -941,6 +960,10 @@ Peterson,~J.~R. \etal, 2015, \apjs, 218, 14;
 \bibitem[Sheldon (2014)]{ngmix}
   Sheldon,~E.~S., 2014, MNRAS, 444, 25;
   \arxiv{1403.7669}
+
+\bibitem[Williams \etal(2004)]{90prime}
+  Williams,~G.~G \etal, 2014,
+  SPIE Conference Series, 5492, Ground-based Instrumentation for Astronomy, 787W
 
 \end{thebibliography}
 
