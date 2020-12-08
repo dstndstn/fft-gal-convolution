@@ -1,15 +1,25 @@
-% Copyright 2015--2019, Dustin Lang (Perimeter Institute).
+% Copyright 2015--2020, Dustin Lang (Perimeter Institute).
 % All rights reserved.
 
 % TO-DO:
-% - Compare speed & accuracy vs galsim ?  Eg, on a Gaussian profile as
-%   it goes from ~ well-sampled to undersampled
-%   (pixel space vs analytic in galsim?)
+
+% - discuss relationship to rendering strategy in GalSim
+%   (highlight that they have an analytic expression for F(exp profile)!)
+
+% - discuss switching from Fourier to real space to avoid aliasing
+%   (this is a way in which this has an advantage over GalSim, I think)
+
+% - General Sersic models?!
+%   (another improvement over GalSim, perhaps)
 
 % - talk about the possibilty of using PSF models sampled at other
 %   than the native pixel grid, as per Schlegel's comments
 
-% - \transpose symbol
+% - FIX Figure 3 -- make a version that has aliasing, and then show
+%   how our Fourier/real space switching trick fixes it.
+
+
+
 
 
 \documentclass[11pt,preprint]{aastex}
@@ -141,7 +151,7 @@ of images, scanning the galaxy across different subpixel positions in
 the image, the galaxy's pixelized light will jump from one pixel to
 the next in steps.  When convolved by the PSF, the galaxy will look
 like a point source in the image, but rather than moving smoothly will
-jump from one pixel to the next.  If render at twice the native pixel
+jump from one pixel to the next.  If rendered at twice the native pixel
 scale and binned, it will jump in half-pixel steps, and if rendered at
 four times the native pixel resolution, will jump in quarter-pixel
 steps.  This occurs because the ``above the atmosphere'' image is
@@ -331,6 +341,10 @@ We will elaborate on each step of the \trick\ below.  In summary:
   galaxy through an ellipticity matrix and the local image World
   Coordinate System (WCS) matrix to get pixel-space Gaussians
   (optionally including sub-pixel shifts).
+\item Optionally, determine which (if any) components of the
+  mixture-of-Gaussians galaxy model are large enough to produce
+  spatial aliasing in the chosen output image size; omit these from
+  the FFT evaluation and evaluate in real space instead.
 \item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space,
   analytically.
 \item Evaluate the Fourier-space Gaussians on the frequency grid \pixelfreqs.
@@ -350,11 +364,14 @@ method is also implemented in \project{the Tractor} code.\footnote{%
 
 Step 1, choosing the desired output image size, depends on the size of
 the PSF model as well as the galaxy.  If the chosen size is too small,
-wrap-around aliasing will occur since the FFT is periodic.  We have an
+wrap-around spatial aliasing will occur since the FFT is periodic.  We have an
 approach to minimize this effect, discussed below and shown in Figure
 \ref{fig:wrap}, but it remains necessary to choose a large enough
 output image to capture a sufficient fraction of the light from the
-galaxy model.
+galaxy model.  In practice, one would likely choose some factor of
+the galaxy half-light radius to capture a sufficient fraction of the
+flux (or perhaps, taking the brightness of the galaxy into account, a
+sufficient surface brightness accuracy), plus the PSF size.
 
 In Step 2, we compute the FFT of the PSF.  If the PSF is constant
 across the image, this FFT need only be computed once.  Alternatively,
@@ -422,7 +439,23 @@ computing these trigonometric functions explicitly in the above.  See
 \appref{app:transform}.
 
 
-Step 4 is the core of the \trick.  The Fourier transform of
+In Step 4, we determine which components of the mixture-of-Gaussians
+representation of the galaxy profile will result in spatial aliasing
+in the FFT.  In \project{the Tractor}, we compute the sum in
+quadrature of the diagonal elements of the pixel-space covariance
+matrix $C$ and divide this by half the output image size; this is
+roughly the number of `sigmas' of the edge of the image.  For Gaussian
+mixture components where this is greater than 3, we evaluate in
+Fourier space.  For components less than 4, we evaluate in real space.
+(For components between 3 and 4, we compute both and ramp smoothly
+between them, so that the galaxy profile has continuous first
+derivatives.)  To evaluate in real space, we use a single-Gaussian
+approximation of the PSF.  Since this model is only used when the
+galaxy model is much larger than the PSF, this approximation is
+reasonable.
+
+
+Step 5 is the core of the \trick.  The Fourier transform of
 a Gaussian is another Gaussian; our mixture-of-Gaussian representation
 of galaxy profiles can be converted into a mixture of Gaussians in
 Fourier space.
@@ -507,9 +540,11 @@ e^{-2 \pi^2 (a_i \pixelfx^2 + 2 b_i \pixelfx \pixelfy + d_i \pixelfy^2)}
 In practice, computing the phase shift in Fourier space requires many
 $\sin$ and $\cos$ operations, so in \project{the Tractor} we instead
 use Lanczos interpolation to perform sub-pixel shifting of the final
-pixel-space model.
+pixel-space model.  This also has the desirable effect that galaxy
+models with tiny radius approach point-source models, to higher
+precision than we find in practice when using Fourier phase shifts.
 
-In Step 5 of our \trick, we directly evaluate these Gaussians in Fourier
+In Step 6 of our \trick, we directly evaluate these Gaussians in Fourier
 space, on the same discrete frequency grid \pixelfreqs\ used for the FFT
 of the PSF.  This has interesting properties.  By taking the Fourier
 transform, we are effectively assuming that the PSF model is well
@@ -527,7 +562,7 @@ Nyquist limit.  By zeroing out the high-frequency power, we avoid the
 aliasing that would otherwise result from Fourier transforming an
 undersampled signal.
 
-Finally, in Step 6, we multiply the PSF and galaxy Fourier transforms,
+Finally, in Step 7, we multiply the PSF and galaxy Fourier transforms,
 and apply the inverse FFT to return to pixel space.
 
 
@@ -713,11 +748,11 @@ outside the image will alias into the image.  This is
 illustrated in Figure \ref{fig:wrap}.
 
 %%% FIXME
-In order to handle sub-pixel shifts in the galaxy position, we have
-added a Fourier phase term in \eqnref{eq:onegaussian}, though one
-could also omit this phase term and instead shift the resulting
-convolved profile in pixel space via a sinc-shift (or Lanczos
-approximation, in practice).
+% In order to handle sub-pixel shifts in the galaxy position, we have
+% added a Fourier phase term in \eqnref{eq:onegaussian}, though one
+% could also omit this phase term and instead shift the resulting
+% convolved profile in pixel space via a sinc-shift (or Lanczos
+% approximation, in practice).
 
 
 
