@@ -3,11 +3,10 @@
 
 % TO-DO:
 
+% - Remove Table with the EXP and DEV fit values
+
 % - discuss relationship to rendering strategy in GalSim
 %   (highlight that they have an analytic expression for F(exp profile)!)
-
-% - discuss switching from Fourier to real space to avoid aliasing
-%   (this is a way in which this has an advantage over GalSim, I think)
 
 % - General Sersic models?!
 %   (another improvement over GalSim, perhaps)
@@ -17,10 +16,6 @@
 
 % - FIX Figure 3 -- make a version that has aliasing, and then show
 %   how our Fourier/real space switching trick fixes it.
-
-
-
-
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -232,9 +227,9 @@ other ellipse representations.
       %
       Step 3: Galaxy MoG
       &
-      Step 4: FT(MoG)
+      Step 5: FT(MoG)
       &
-      Step 5: FT(Galaxy) \\
+      Step 6: FT(Galaxy) \\
       %
       % gal img
       \includegraphics[height=0.22\textwidth]{psf-08}%
@@ -267,7 +262,7 @@ other ellipse representations.
       \makebox[0em][c]{
         \raisebox{0.11\textwidth}{%
           \hspace{2em}$\xleftarrow{\displaystyle%
-            \textrm{\hspace{1em} Step 6: FFT$^{-1}$ \hspace{1em}}}$
+            \textrm{\hspace{1em} Step 7: FFT$^{-1}$ \hspace{1em}}}$
         }%
       }
       %
@@ -341,17 +336,18 @@ We will elaborate on each step of the \trick\ below.  In summary:
   galaxy through an ellipticity matrix and the local image World
   Coordinate System (WCS) matrix to get pixel-space Gaussians
   (optionally including sub-pixel shifts).
-\item Optionally, determine which (if any) components of the
-  mixture-of-Gaussians galaxy model are large enough to produce
-  spatial aliasing in the chosen output image size; omit these from
-  the FFT evaluation and evaluate in real space instead.
+\item Determine which (if any) components of the mixture-of-Gaussians
+  galaxy model are large enough to produce significant spatial
+  aliasing in the chosen output image size; omit these from the
+  Fourier-space evaluation and evaluate in real space instead.
 \item Convert the galaxy mixture-of-Gaussians from pixel space to Fourier space,
   analytically.
 \item Evaluate the Fourier-space Gaussians on the frequency grid \pixelfreqs.
 \item Multiply the PSF and galaxy Fourier transforms, then inverse-FFT
   back to pixel space.
-\item Optionally, use Lanczos interpolation to perform sub-pixel shifting, if not
-  done in Fourier space.
+\item Add any galaxy Gaussian mixture terms evaluated in real space,
+  then, optionally, use Lanczos interpolation to perform sub-pixel
+  shifting, if not done in Fourier space.
 \end{enumerate}
 %We will elaborate on each step below.
 
@@ -364,25 +360,26 @@ method is also implemented in \project{the Tractor} code.\footnote{%
 
 Step 1, choosing the desired output image size, depends on the size of
 the PSF model as well as the galaxy.  If the chosen size is too small,
-wrap-around spatial aliasing will occur since the FFT is periodic.  We have an
-approach to minimize this effect, discussed below and shown in Figure
-\ref{fig:wrap}, but it remains necessary to choose a large enough
-output image to capture a sufficient fraction of the light from the
-galaxy model.  In practice, one would likely choose some factor of
-the galaxy half-light radius to capture a sufficient fraction of the
-flux (or perhaps, taking the brightness of the galaxy into account, a
+wrap-around spatial aliasing will occur since the FFT is periodic.
+This is mitigated by Step 4 (evaluating galaxy mixture-of-Gaussian
+terms that will result in aliasing in real space rather than Fourier
+space), but it remains necessary to choose a large enough output image
+to capture a sufficient fraction of the light from the galaxy model.
+In practice, one would likely choose some factor of the galaxy
+half-light radius to capture a sufficient fraction of the flux (or
+perhaps, taking the brightness of the galaxy into account, a
 sufficient surface brightness accuracy), plus the PSF size.
 
 In Step 2, we compute the FFT of the PSF.  If the PSF is constant
-across the image, this FFT need only be computed once.  Alternatively,
-some PSF modelling tools, including \project{PsfEx} \citep{psfex},
-produce \emph{eigen-PSF} models.  That is, the PSF model varies
-spatially across the image, and the variation is represented as
-polynomial variations in the amplitudes of a set of PSF components.
-This is convenient, since the FFT of each eigen-component can be
-computed once in preprocessing and the FFT at a given position in the
-image can be computed by weighting the component FFTs using the PSF
-model's polynomial spatial variation terms.
+across the image, this FFT need only be computed once per image.
+Alternatively, some PSF modelling tools, including \project{PsfEx}
+\citep{psfex}, produce \emph{eigen-PSF} models.  That is, the PSF
+model varies spatially across the image, and the variation is
+represented as polynomial variations in the amplitudes of a set of PSF
+components.  This is convenient, since the FFT of each eigen-component
+can be computed once in preprocessing and the FFT at a given position
+in the image can be computed by weighting the component FFTs using the
+PSF model's polynomial spatial variation terms.
 
 In Step 3, we transform the mixture-of-Gaussians approximation of the
 galaxy profiles from their representation in units of galaxy effective
@@ -440,25 +437,55 @@ computing these trigonometric functions explicitly in the above.  See
 
 
 In Step 4, we determine which components of the mixture-of-Gaussians
-representation of the galaxy profile will result in spatial aliasing
-in the FFT.  In \project{the Tractor}, we compute the sum in
-quadrature of the diagonal elements of the pixel-space covariance
-matrix $C$ and divide this by half the output image size; this is
-roughly the number of `sigmas' of the edge of the image.  For Gaussian
-mixture components where this is greater than 3, we evaluate in
-Fourier space.  For components less than 4, we evaluate in real space.
-(For components between 3 and 4, we compute both and ramp smoothly
-between them, so that the galaxy profile has continuous first
-derivatives.)  To evaluate in real space, we use a single-Gaussian
-approximation of the PSF.  Since this model is only used when the
-galaxy model is much larger than the PSF, this approximation is
-reasonable.
+representation of the galaxy profile will result in significant
+spatial aliasing in the FFT.  In \project{the Tractor}, we compute the
+sum of the diagonal elements of the pixel-space covariance matrix $C$,
+take the square root and divide this by half the output image size;
+this is roughly the number of `sigmas' from the center to the edge of
+the image, for that Gaussian component.  For Gaussian mixture
+components where this is greater than $3$, we evaluate in Fourier
+space.  For components less than $4$, we evaluate in real space.  For
+components between $3$ and $4$, we compute both real and Fourier
+versions and ramp smoothly between them, so that the galaxy profile
+has continuous first derivatives.  To evaluate in real space, we use a
+single-Gaussian approximation of the PSF.  Since this approximate PSF
+model is only used when the galaxy model is much larger than the PSF,
+this approximation is reasonable.  See \figref{fig:wrap}.
 
 
-Step 5 is the core of the \trick.  The Fourier transform of
-a Gaussian is another Gaussian; our mixture-of-Gaussian representation
-of galaxy profiles can be converted into a mixture of Gaussians in
-Fourier space.
+\begin{figure}[htb]
+\begin{center}
+\begin{tabular}{@{}ccc@{}}
+  $128 \times 128$-pixel FFT &
+  $32 \times 32$ FFT &
+  $32 \times 32$ Hybrid \\
+  %
+  \includegraphics[height=0.19\textwidth]{gal-00} &
+  \includegraphics[height=0.19\textwidth]{gal-01} &
+  \includegraphics[height=0.19\textwidth]{gal-02} \\
+\end{tabular}
+\end{center}
+\caption{\label{fig:wrap}%
+  Spatial (wrap-around) aliasing of the PSF-convolved galaxy profile
+  can occur if the FFT is
+  computed on a pixel grid too small to contain the galaxy.
+  Our hybrid approach---switching from Fourier space to real space
+  for galaxy Gaussian mixture components that would alias---eliminates
+  this problem.
+  %
+  \textbf{Left:} Result (cropped) when galaxy is evaluated in a 128-pixel square grid in Fourier space.
+  %
+  \textbf{Middle:} Result when evaluating the FFT in a 32-pixel square grid shows wrap-around
+  aliasing.
+  \textbf{Right:} Result when using our hybrid method shows negligible aliasing.
+}
+\end{figure}
+
+
+Step 5 is the core of the \trick.  The Fourier transform of a Gaussian
+is another Gaussian; our mixture-of-Gaussian representation of galaxy
+profiles can be converted into a mixture of Gaussians in Fourier
+space.
 %
 A single 2-dimensional Gaussian
 centered at the origin and
@@ -562,8 +589,11 @@ Nyquist limit.  By zeroing out the high-frequency power, we avoid the
 aliasing that would otherwise result from Fourier transforming an
 undersampled signal.
 
-Finally, in Step 7, we multiply the PSF and galaxy Fourier transforms,
-and apply the inverse FFT to return to pixel space.
+In Step 7, we multiply the PSF and galaxy Fourier transforms, and
+apply the inverse FFT to return to pixel space.  Finally, in Step 8,
+we add in the Gaussian mixture terms that were evaluated in real
+space, and, if not done in Fourier space, use Lanczos interpolation to
+perform a sub-pixel shift.
 
 
 \section{Results}
@@ -576,7 +606,7 @@ results in high-frequency aliasing because the galaxy core is
 under-sampled.
 
 
-\begin{figure}
+\begin{figure}[p!]
   \newcommand{\F}{$\mathcal{F}$}
   \begin{center}
     \begin{tabular}{@{}ccccc@{}}
@@ -716,36 +746,15 @@ could provide significant speedups.
 %http://homepage1.nifty.com/herumi/soft/fmath.html
 
 
-\begin{figure}
-\begin{center}
-\begin{tabular}{@{}cc@{}}
-  $256 \times 256$-pixel FFT &
-  $32 \times 32$-pixel FFT \\
-  %
-  \includegraphics[height=0.22\textwidth]{gal-00} &
-  \includegraphics[height=0.22\textwidth]{gal-01} \\
-\end{tabular}
-\end{center}
-\caption{\label{fig:wrap}%
-  Wrap-around of the PSF-convolved galaxy profile can occur if the FFT is
-  computed on a pixel grid too small to contain the galaxy.
-  %
-  \textbf{Left:} Result (cropped) using a 256-pixel square grid.
-  %
-  \textbf{Right:} Result using a 32-pixel square grid shows wrap-around
-  aliasing.
-}
-\end{figure}
-
 
 %%% FIXME
-When using this \trick, one must choose the image patch size in which
-to embed the PSF; the resulting convolved image will be the same size.
-The image size chosen must be large enough to contain the convolved
-galaxy, or wrap-around effects will be seen: The Fourier transform is
-periodic, so any part of the convolved galaxy profile that lies
-outside the image will alias into the image.  This is
-illustrated in Figure \ref{fig:wrap}.
+% When using this \trick, one must choose the image patch size in which
+% to embed the PSF; the resulting convolved image will be the same size.
+% The image size chosen must be large enough to contain the convolved
+% galaxy, or wrap-around effects will be seen: The Fourier transform is
+% periodic, so any part of the convolved galaxy profile that lies
+% outside the image will alias into the image.  This is
+% illustrated in Figure \ref{fig:wrap}.
 
 %%% FIXME
 % In order to handle sub-pixel shifts in the galaxy position, we have

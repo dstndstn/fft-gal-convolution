@@ -347,22 +347,137 @@ def fft_plots(psfex, W, H, ps, ps2, ps3):
     plt.yticks([])
     ps.savefig()
 
-    # gal-*.pdf plots (pixel-space wrap-around)
+from tractor.galaxy import HoggGalaxy, ExpGalaxy
+from tractor.mixture_profiles import MixtureOfGaussians
+class OneComponentGalaxy(HoggGalaxy):
+    def __init__(self, amps, sigmas, *args, **kwargs):
+        self.nre = ExpGalaxy.nre
+        n = len(amps)
+        amps = np.array(amps)
+        sigmas = np.array(sigmas)
+        self.profile = MixtureOfGaussians(amps, np.zeros((n,2)), np.diag(sigmas**2))
+        super(OneComponentGalaxy, self).__init__(*args, **kwargs)
+
+    def getName(self):
+        return 'OneComponentGalaxy'
+
+    def getProfile(self):
+        return self.profile
     
-    plt.figure(1)
-    
-    w,h = 32,32
+def aliasing_plots(ps, psfex):
+    from tractor.patch import ModelMask
+    psfim = psfex.instantiateAt(0,0)
+    #mx = psfim.max()
+    print('PSF size', psfim.shape)
+    T2 = 15
+    psfim = psfim[T2:-T2,T2:-T2]
+    psfim /= np.sum(psfim)
+    print('PSF size', psfim.shape)
+    #ph,pw = psfim.shape
+    #cx,cy = pw//2, ph//2
+    pixpsf = PixelizedPSF(psfim)
+
+    ima = dict(ticks=False, cmap=antigray)
 
     egal = EllipseE.fromRAbPhi(20., 0.1, 115.)
     gal = ExpGalaxy(PixPos(0.,0.), Flux(100.), egal)
 
+    gpsf = GaussianMixturePSF.fromStamp(psfim, N=1, v3=True)
+    #print('Gauss psf:', gpsf)
+    hybridpsf = HybridPixelizedPSF(pixpsf, gauss=gpsf)
+    #NCircularGaussianPSF([np.sqrt(2.55)],[1.]))
+    # N=1
+    print('Hybrid PSF gaussian:', hybridpsf.gauss)
 
-    cx,cy = w, h//2
-    gal.pos = PixPos(cx, cy)
+    mm = ModelMask(0,0,30,30)
+    pixpatch = pixpsf.getPointSourcePatch(15, 15, modelMask=mm)
+    gpatch = hybridpsf.gauss.getPointSourcePatch(15, 15, modelMask=mm)
+    im1 = np.zeros((30,30))
+    im2 = np.zeros((30,30))
 
-    p = gal.getModelPatch(img)
-    mod = np.zeros((h,w*2))
-    p.addTo(mod)
+    # Gaussian approx PSF
+    # plt.figure(4)
+    # plt.clf()
+    # plt.subplot(1,3,1)
+    # pixpatch.addTo(im1)
+    # mx = im1.max()
+    # dimshow(im1, vmin=0, vmax=mx)
+    # plt.subplot(1,3,2)
+    # gpatch.addTo(im2)
+    # dimshow(im2, vmin=0, vmax=mx)
+    # plt.subplot(1,3,3)
+    # #plt.plot(im1[:,15], 'b-')
+    # #plt.plot(im2[:,15], 'g-')
+    # mx = np.max(np.abs(im2-im1))
+    # dimshow(im2-im1, vmin=-mx, vmax=mx)
+    # ps.savefig()
+
+    # Individual components of EXP mixture.
+    # from tractor.mixture_profiles import exp_amp, exp_var
+    # amps,sigs = exp_amp, np.sqrt(exp_var)
+    # W,H = 30,30
+    # data = np.zeros((H,W), np.float32)
+    # img = Image(data=data, invvar=np.ones_like(data), psf=pixpsf)
+    # for ic,(a,s) in enumerate(zip(amps, sigs)):
+    #     print('Component', ic)
+    #     og = OneComponentGalaxy([a], [s], PixPos(0.,0.), Flux(100.), egal)
+    #     cx,cy = W//2, H//2
+    #     og.pos = PixPos(cx, cy)
+    #     plt.clf()
+    #     mx = None
+    #     mods = []
+    #     for i,hybrid in enumerate([True,False]):
+    #         if hybrid:
+    #             img.psf = hybridpsf
+    #         else:
+    #             img.psf = pixpsf
+    # 
+    #         p = og.getModelPatch(img, modelMask=ModelMask(0, 0, W, H))
+    #         mod = np.zeros((H,W))
+    #         p.addTo(mod)
+    #         mods.append(mod)
+    #         if mx is None:
+    #             mx = mod.max()
+    #             ima.update(vmin=0, vmax=mx)
+    #         plt.subplot(1,3,i+1)
+    #         dimshow(mod, **ima)
+    #     plt.subplot(1,3,3)
+    #     mx = np.max(np.abs(mods[0]-mods[1]))
+    #     plt.imshow(mods[0]-mods[1], interpolation='nearest', origin='lower',
+    #                vmin=-mx, vmax=mx)
+    #     ps.savefig()
+
+    mx = None
+    #for W,H,hybrid in [(256,32,False), (32,32,False), (32,32,True)]:
+    for W,H,hybrid,fig in [(90,30,False,4), (30,30,False,1), (30,30,True,1)]:
+        data=np.zeros((H,W), np.float32)
+        #tinypsf = NCircularGaussianPSF([1e-6], [1.])
+        img = Image(data=data, invvar=np.ones_like(data),
+                    psf=pixpsf)
+        #psf=tinypsf)
+        if hybrid:
+            img.psf = hybridpsf
+
+        cx,cy = W//2, H//2
+        gal.pos = PixPos(cx, cy)
+
+        p = gal.getModelPatch(img, modelMask=ModelMask(0, 0, W, H))
+        #force_halfsize=W/2)
+        mod = np.zeros((H,W))
+        p.addTo(mod)
+
+        if mx is None:
+            mx = mod.max()
+            ima.update(vmin=0, vmax=mx)
+        plt.figure(fig)
+        plt.clf()
+        dimshow(mod, **ima)
+        ps.savefig()
+    return
+    # gal-*.pdf plots (pixel-space wrap-around)
+    
+    w,h = 32,32
+
 
     #halfsize = gal._getUnitFluxPatchSize(img, cx, cy, 0.)
     #print 'halfsize:', halfsize
@@ -400,9 +515,11 @@ def main():
     
     ps = PlotSequence('psf', suffixes=['pdf'])
     ps2 = PlotSequence('gal', suffixes=['pdf'])
-    #ps3 = PlotSequence('lopass', suffixes=['pdf'])
-    ps3 = PlotSequence('lopass', suffixes=['png'])
-    
+    #ps2 = PlotSequence('gal', suffixes=['png'])
+
+    ps3 = PlotSequence('lopass', suffixes=['pdf'])
+    #ps3 = PlotSequence('lopass', suffixes=['png'])
+
     plt.figure(1, figsize=(3,3))
     margin = 0.01
     plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
@@ -415,14 +532,19 @@ def main():
     plt.figure(3, figsize=(6 * frac,6))
     plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
 
-    from lopass import MyPlotSequence, lopass
-    ps = MyPlotSequence('lopass', True, suffixes=['pdf'])
-    lopass(ps, 2, 3)
+    plt.figure(4, figsize=(9,3))
+    plt.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0, wspace=0)
+
+    aliasing_plots(ps2, psfex)
     sys.exit(0)
     
     plt.figure(1)
-    fft_plots(psfex, W, H, ps, ps2)
-
+    fft_plots(psfex, W, H, ps, ps2, ps3)
+    sys.exit(0)
+    
+    from lopass import MyPlotSequence, lopass
+    ps = MyPlotSequence('lopass', True, suffixes=['pdf'])
+    lopass(ps, 2, 3)
     
 # plt.clf()
 # mx = tinyp.patch.max()
