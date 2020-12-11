@@ -41,8 +41,6 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \newcommand{\niceurl}[1]{\href{#1}{\textsl{#1}}}
 \newcommand{\project}[1]{\textsl{#1}}
 \newcommand{\conv}{\otimes}
-\newcommand{\trick}{method}
-\newcommand{\Trick}{Method}
 \newcommand{\sersic}{S\'ersic}
 
 \newcommand{\transpose}[1]{#1^{T}}
@@ -60,7 +58,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 
 \begin{document}
 
-\title{A \trick\ for fast galaxy--PSF convolution}
+\title{A method for fast galaxy--PSF convolution}
 \author{Dustin~Lang\altaffilmark{1,2}}
 \altaffiltext{1}%
 {Perimeter Institute for Theoretical Physics,
@@ -76,9 +74,9 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \shortauthors{Lang}
 
 \begin{abstract}
-  I present a \trick\ for the fast convolution of a model galaxy
+  I present a method for the fast convolution of a model galaxy
   profile by a point-spread function (PSF) model represented as a pixel grid.
-  The \trick\ relies upon two
+  The method relies upon two
   observations: First, most simple radial galaxy profiles of common interest
   (deVaucouleurs, exponential, \sersic) can be approximated as
   mixtures of Gaussians.  Second, the Fourier transform of a Gaussian
@@ -91,17 +89,17 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   transform of the galaxy, and the inverse-FFT to return the result to
   pixel space.
   %
-  The \trick\ is fast and exact (to the extent that the mixture-of-Gaussians
+  The method is fast and exact (to the extent that the mixture-of-Gaussians
   approximation of the galaxy profile is exact) as long as the pixelized PSF
   model is well sampled.
   %
-  This \trick\ can be seen as a way of applying a perfect low-pass filter to
+  This method can be seen as a way of applying a perfect low-pass filter to
   the (typically strongly undersampled) galaxy profile before convolution by
   the PSF, at exactly the Nyquist frequency of the PSF pixel model grid.  In
   this way, it avoids the computational expense of a traditional super-resolution
   approach.
   %
-  This \trick\ allows
+  This method allows
   the efficient use of pixelized PSF models (ie, a PSF represented as
   a grid of pixel values) in galaxy forward model-fitting approaches such as
   \project{the Tractor}.
@@ -274,7 +272,7 @@ other ellipse representations.
     \end{tabular}
   \end{center}
   \caption{\label{fig:example}%
-    Illustration of the \trick.
+    Illustration of the method.
     \textbf{Top-left}: pixelized PSF model (zoom-in of central region).
     %
     \textbf{Top-right}: 
@@ -286,7 +284,7 @@ other ellipse representations.
     % 
     \textbf{Middle-left}: Pixel-space galaxy profile,
     Mixture-of-Gaussians (MoG) approximation.  The profile would be
-    undersampled if evaluated in pixel space; in this \trick, the galaxy model
+    undersampled if evaluated in pixel space; in this method, the galaxy model
     is never evaluated in pixel space.
     % 
     \textbf{Middle}: The mixture-of-Gaussians galaxy approximation in
@@ -308,9 +306,9 @@ other ellipse representations.
 
 
 
-\section{The \Trick}
+\section{The method}
 
-The \trick\ presented here builds directly upon our mixture-of-Gaussians
+The method presented here builds directly upon our mixture-of-Gaussians
 approximation of galaxy profiles, with the realization that the
 Fourier transform of a Gaussian is also a Gaussian.  This allows us to
 evaluate the Fourier transform of a model galaxy profile \emph{directly} in Fourier
@@ -325,7 +323,7 @@ the PSF-convolved galaxy profile.
 As long as the pixelized PSF model is well sampled, this method produces
 exact answers for each Gaussian in the mixture.
 
-We will elaborate on each step of the \trick\ below.  In summary:
+We will elaborate on each step of the method below.  In summary:
 \begin{enumerate}
 \item Choose the desired output image size and embed the pixelized PSF
   model in a zero-padded image of this size.
@@ -482,7 +480,7 @@ this approximation is reasonable.  See \figref{fig:wrap}.
 \end{figure}
 
 
-Step 5 is the core of the \trick.  The Fourier transform of a Gaussian
+Step 5 is the core of the method.  The Fourier transform of a Gaussian
 is another Gaussian; our mixture-of-Gaussian representation of galaxy
 profiles can be converted into a mixture of Gaussians in Fourier
 space.
@@ -571,7 +569,7 @@ pixel-space model.  This also has the desirable effect that galaxy
 models with tiny radius approach point-source models, to higher
 precision than we find in practice when using Fourier phase shifts.
 
-In Step 6 of our \trick, we directly evaluate these Gaussians in Fourier
+In Step 6 of our method, we directly evaluate these Gaussians in Fourier
 space, on the same discrete frequency grid \pixelfreqs\ used for the FFT
 of the PSF.  This has interesting properties.  By taking the Fourier
 transform, we are effectively assuming that the PSF model is well
@@ -598,7 +596,7 @@ perform a sub-pixel shift.
 
 \section{Results}
 
-I first demonstrate how this \trick\ avoids the high-frequency
+I first demonstrate how this method avoids the high-frequency
 aliasing that results if we na\"ively evaluate the galaxy profile in
 pixel space.  As shown in \figref{fig:aliasing}, evaluating even a
 rather broad exponential galaxy profile na\"ively in pixel space
@@ -728,7 +726,7 @@ under-sampled.
 
 \section{Discussion}
 
-Our \trick\ is implemented in \project{the Tractor} code and has been
+Our method is implemented in \project{the Tractor} code and has been
 used at scale in the data reduction for the DESI Legacy Imaging Surveys
 \citep{dey}, which include $15,000$ square degrees of imaging data from
 three different cameras (the Dark Energy Camera \citep{decam},
@@ -736,7 +734,7 @@ the 90Prime camera \citep{90prime}, and the Mosaic3 camera \citep{mosaic3}),
 measuring over one billion sources through forward modeling.
 %
 
-A significant portion of the computational cost of this \trick\ is in
+A significant portion of the computational cost of this method is in
 evaluating the \emph{exp} function rather than in the FFT or
 inverse-FFT, so fast \emph{exp} approximations\footnote{For example,
   \niceurl{https://github.com/herumi/fmath} as used in
@@ -748,7 +746,7 @@ could provide significant speedups.
 
 
 %%% FIXME
-% When using this \trick, one must choose the image patch size in which
+% When using this method, one must choose the image patch size in which
 % to embed the PSF; the resulting convolved image will be the same size.
 % The image size chosen must be large enough to contain the convolved
 % galaxy, or wrap-around effects will be seen: The Fourier transform is
