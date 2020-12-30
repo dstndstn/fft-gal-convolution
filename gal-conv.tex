@@ -767,14 +767,14 @@ measuring over two billion sources through forward modeling.
 As mentioned earlier, when rendering \sersic\ or deVaucoulers galaxy
 models in Fourier space, \project{GalSim} must pre-compute look-up
 tables for the Fourier transforms, with a different table required for
-each Sersic index.  The expense of this operation means that the
+each \sersic\ index.  The expense of this operation means that the
 \project{GalSim} authors recommend using only discrete
 \sersic\ indices.  We have recently found that the Gaussian mixture
 components (amplitudes and variances) for \sersic\ galaxies vary
 smoothly with respect to \sersic\ index, so we can fit for a discrete
-set of indices and then interpolate for intermediate \sersic indices.
+set of indices and then interpolate for intermediate values.
 This allows us to evaluate general \sersic\ models for the same
-computational cost as simple exponential or deVaucoulers models.
+computational cost as exponential or deVaucoulers models.
 Indeed, our latest Legacy Surveys release, Data Release 9, performs
 these fits at scale and reports general \sersic\ fits for millions of
 galaxies.
