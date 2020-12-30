@@ -3,19 +3,15 @@
 
 % TO-DO:
 
-% - Remove Table with the EXP and DEV fit values
-
-% - discuss relationship to rendering strategy in GalSim
-%   (highlight that they have an analytic expression for F(exp profile)!)
+% --in the intro, should I identify the ``problems'' and mention that
+%   we are going to solve them with our method??
 
 % - General Sersic models?!
-%   (another improvement over GalSim, perhaps)
+%   (another improvement over GalSim)
 
 % - talk about the possibilty of using PSF models sampled at other
 %   than the native pixel grid, as per Schlegel's comments
 
-% - FIX Figure 3 -- make a version that has aliasing, and then show
-%   how our Fourier/real space switching trick fixes it.
 
 \documentclass[11pt,preprint]{aastex}
 \usepackage{amssymb,amsmath,mathrsfs,color}
@@ -58,8 +54,8 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 
 \begin{document}
 
-\title{A method for fast galaxy--PSF convolution}
-\author{Dustin~Lang\altaffilmark{1,2}}
+\title{A hybrid Fourier--Real Gaussian Mixture method for fast galaxy--PSF convolution}
+\author{Dustin~Lang\altaffilmark{1,2,3}}
 \altaffiltext{1}%
 {Perimeter Institute for Theoretical Physics,
   31 Caroline St N, Waterloo, ON, N2L 2Y5, Canada}
@@ -67,7 +63,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 {Department of Physics \& Astronomy,
  University of Waterloo,
  200 University Ave W, Waterloo, ON, N2L 3G1, Canada}
-\altaffiltext{2}%
+\altaffiltext{3}%
 {dstndstn@gmail.com}
 \date{DRAFT \today}
 \shorttitle{Fast Galaxy--PSF Convolution}
@@ -76,24 +72,30 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \begin{abstract}
   I present a method for the fast convolution of a model galaxy
   profile by a point-spread function (PSF) model represented as a pixel grid.
-  The method relies upon two
+  The method relies upon three
   observations: First, most simple radial galaxy profiles of common interest
   (deVaucouleurs, exponential, \sersic) can be approximated as
   mixtures of Gaussians.  Second, the Fourier transform of a Gaussian
   is a Gaussian, thus the Fourier transform of a mixture-of-Gausssian
   approximation of a galaxy can be directly evaluated as a mixture of Gaussians
   in Fourier space.
+  Third, if a mixture component would result in Fourier-space aliasing, that
+  component can be evaluated in real space.
   %
-  We therefore perform the PSF--galaxy convolution in Fourier space,
-  using the FFT for the PSF model, direct evaluation of the Fourier
-  transform of the galaxy, and the inverse-FFT to return the result to
+  For mixture components to be evaluated in Fourier space, we
+  use the FFT for the PSF model, direct evaluation of the Fourier
+  transform for the galaxy, and the inverse-FFT to return the result to
   pixel space.
+  %
+  For mixture components to be evaluated in real space---which only happens when the mixture
+  components is much larger than the PSF---we use a simple Gaussian approximation of
+  the PSF, perform the convolution analytically, and evaluate in real pixel space.
   %
   The method is fast and exact (to the extent that the mixture-of-Gaussians
   approximation of the galaxy profile is exact) as long as the pixelized PSF
   model is well sampled.
   %
-  This method can be seen as a way of applying a perfect low-pass filter to
+  This Fourier method can be seen as a way of applying a perfect low-pass filter to
   the (typically strongly undersampled) galaxy profile before convolution by
   the PSF, at exactly the Nyquist frequency of the PSF pixel model grid.  In
   this way, it avoids the computational expense of a traditional super-resolution
@@ -150,7 +152,28 @@ four times the native pixel resolution, will jump in quarter-pixel
 steps.  This occurs because the ``above the atmosphere'' image is
 undersampled; a point source has power at all frequencies, and
 rendering it at the native pixel scale causes the high-frequency power
-to alias into the band, causing errors in the rendering.
+to alias into the band, causing errors in the rendering.  As example of this
+is shown in \figref{fig:aliasing}.
+
+
+Some of the codes mentioned above, and in particular \project{GalSim},
+provide the option to render PSF-convolved galaxies in Fourier space.
+To avoid the aliasing discussed above, it is necessary to evaluate the
+Fourier transform of the galaxy profile directly in Fourier space.
+For exponential galaxy profiles, the \project{GalSim} authors give an
+analytic expression.  For deVaucouleurs and \sersic\ profiles,
+however, a look-up table must be used, and they caution that a
+separate look-up table must be pre-computed for each \sersic\ index,
+which can dominate the computational cost.  Finally, due to the
+periodic nature of the inverse Fourier transform, spatial aliasing can
+occur if the galaxy profile is rendered into an image that is too
+small (as illustrated in \figref{fig:wrap}).  If the \project{GalSim}
+user requests such a rendering, it produces the rendering on a larger
+image (possibly at considerable extra cost) and returns the un-aliased
+sub-image.  The hybrid Fourier/real method presented here provides an
+inexpensive alternative.
+% FIXME -- and the method for approximating galaxies with general
+% Sersic index allows the Sersic index to be fit cheaply.
 
 
 In \project{the Tractor}, we have previously taken the approach of
@@ -272,7 +295,8 @@ other ellipse representations.
     \end{tabular}
   \end{center}
   \caption{\label{fig:example}%
-    Illustration of the method.
+    Illustration of the method, for the case when all mixture components are to be
+    evaluated in Fourier space.
     \textbf{Top-left}: pixelized PSF model (zoom-in of central region).
     %
     \textbf{Top-right}: 
@@ -363,21 +387,21 @@ This is mitigated by Step 4 (evaluating galaxy mixture-of-Gaussian
 terms that will result in aliasing in real space rather than Fourier
 space), but it remains necessary to choose a large enough output image
 to capture a sufficient fraction of the light from the galaxy model.
-In practice, one would likely choose some factor of the galaxy
-half-light radius to capture a sufficient fraction of the flux (or
-perhaps, taking the brightness of the galaxy into account, a
-sufficient surface brightness accuracy), plus the PSF size.
+In practice, one would likely choose the PSF size plus some factor of
+the galaxy half-light radius to capture a sufficient fraction of the
+flux, or, taking the brightness of the galaxy into account, a
+sufficient surface brightness accuracy.
 
 In Step 2, we compute the FFT of the PSF.  If the PSF is constant
 across the image, this FFT need only be computed once per image.
 Alternatively, some PSF modelling tools, including \project{PsfEx}
 \citep{psfex}, produce \emph{eigen-PSF} models.  That is, the PSF
 model varies spatially across the image, and the variation is
-represented as polynomial variations in the amplitudes of a set of PSF
-components.  This is convenient, since the FFT of each eigen-component
-can be computed once in preprocessing and the FFT at a given position
-in the image can be computed by weighting the component FFTs using the
-PSF model's polynomial spatial variation terms.
+represented as polynomial variations in the amplitudes of a set of
+pixelized PSF components.  This is convenient, since the FFT of each
+eigen-component can be computed once in preprocessing and the FFT at a
+given position in the image can be computed by weighting the component
+FFTs using the PSF model's polynomial spatial variation terms.
 
 In Step 3, we transform the mixture-of-Gaussians approximation of the
 galaxy profiles from their representation in units of galaxy effective
@@ -389,13 +413,13 @@ World Coordinate System.
 The result is a pixel-space mixture-of-Gaussians representation of the
 galaxy.
 
-Specifically, in \project{the Tractor}, we represent the shape of a
-galaxy by the effective radius $r_e$ and two ellipticity components
-$e_1$ and $e_2$ as are typically used in weak lensing.  We can
-represent this as a matrix that transforms from celestial coordinates
-into units of effective radius (the coordinates in which the galaxy
-profiles are written).  This is most easily done by computing the
-position angle $\theta$ and axis ratio $a$,
+Specifically, in \project{the Tractor}, we prefer to represent the
+shape of a galaxy by the effective radius $r_e$ and two ellipticity
+components $e_1$ and $e_2$ as are typically used in weak lensing.  We
+can represent this as a matrix that transforms from celestial
+coordinates into units of effective radius (the coordinates in which
+the galaxy profiles are written).  This is most easily done by
+computing the position angle $\theta$ and axis ratio $a$,
 \begin{align}
 %
 \theta & = \frac{1}{2} \arctan\!2(e_2, e_1) \\
@@ -427,7 +451,7 @@ be transformed into pixel space by computing
 C &= A \, V \transpose{A}
 \label{eq:vpix}
 \end{align}
-where we will use isotropic variances $V = v \bm{I}$ for the galaxy profiles.
+where the galaxy profile's variances are isotropic; $V = v \bm{I}$.
 When we write out this matrix in full, we find that the $\cos{\theta}$
 and $\sin{\theta}$ terms always appear in pairs, so we can avoid
 computing these trigonometric functions explicitly in the above.  See
@@ -594,14 +618,27 @@ space, and, if not done in Fourier space, use Lanczos interpolation to
 perform a sub-pixel shift.
 
 
-\section{Results}
 
-I first demonstrate how this method avoids the high-frequency
+
+% Next, in \figref{fig:psfmog}, I show the results of using my method
+% versus our previous approach of using a mixture-of-Gaussians
+% approximation for the PSF.  We would expect to see the greatest
+% differences for compact galaxies, and for PSFs that have asymmetries
+% or broad wings that tend not to be fit well by small mixtures of
+% Gaussians.
+% 
+% \begin{figure}
+%   \begin{center}
+%   \end{center}
+%   \caption{\label{fig:psfmog}
+%   }
+% \end{figure}
+
+\section{Discussion}
+
+\Figref{fig:aliasing} demonstrates how this method avoids the high-frequency
 aliasing that results if we na\"ively evaluate the galaxy profile in
-pixel space.  As shown in \figref{fig:aliasing}, evaluating even a
-rather broad exponential galaxy profile na\"ively in pixel space
-results in high-frequency aliasing because the galaxy core is
-under-sampled.
+pixel space.
 
 
 \begin{figure}[p!]
@@ -709,57 +746,38 @@ under-sampled.
   \end{center}
 \end{figure}
 
-
-% Next, in \figref{fig:psfmog}, I show the results of using my method
-% versus our previous approach of using a mixture-of-Gaussians
-% approximation for the PSF.  We would expect to see the greatest
-% differences for compact galaxies, and for PSFs that have asymmetries
-% or broad wings that tend not to be fit well by small mixtures of
-% Gaussians.
-% 
-% \begin{figure}
-%   \begin{center}
-%   \end{center}
-%   \caption{\label{fig:psfmog}
-%   }
-% \end{figure}
-
-\section{Discussion}
-
-Our method is implemented in \project{the Tractor} code and has been
-used at scale in the data reduction for the DESI Legacy Imaging Surveys
-\citep{dey}, which include $15,000$ square degrees of imaging data from
-three different cameras (the Dark Energy Camera \citep{decam},
-the 90Prime camera \citep{90prime}, and the Mosaic3 camera \citep{mosaic3}),
-measuring over one billion sources through forward modeling.
-%
-
 A significant portion of the computational cost of this method is in
 evaluating the \emph{exp} function rather than in the FFT or
 inverse-FFT, so fast \emph{exp} approximations\footnote{For example,
   \niceurl{https://github.com/herumi/fmath} as used in
   \project{ngmix}, \niceurl{https://github.com/esheldon/ngmix}.}
 could provide significant speedups.
-
+%
 %http://homepage1.nifty.com/herumi/soft/fmath.html
 
 
+Our method is implemented in \project{the Tractor} code and has been
+used at scale in the data reduction for the DESI Legacy Imaging Surveys
+\citep{dey}, which include $20,000$ square degrees of imaging data from
+three different cameras (the Dark Energy Camera \citep{decam},
+the 90Prime camera \citep{90prime}, and the Mosaic3 camera \citep{mosaic3}),
+measuring over two billion sources through forward modeling.
 
-%%% FIXME
-% When using this method, one must choose the image patch size in which
-% to embed the PSF; the resulting convolved image will be the same size.
-% The image size chosen must be large enough to contain the convolved
-% galaxy, or wrap-around effects will be seen: The Fourier transform is
-% periodic, so any part of the convolved galaxy profile that lies
-% outside the image will alias into the image.  This is
-% illustrated in Figure \ref{fig:wrap}.
 
-%%% FIXME
-% In order to handle sub-pixel shifts in the galaxy position, we have
-% added a Fourier phase term in \eqnref{eq:onegaussian}, though one
-% could also omit this phase term and instead shift the resulting
-% convolved profile in pixel space via a sinc-shift (or Lanczos
-% approximation, in practice).
+As mentioned earlier, when rendering \sersic\ or deVaucoulers galaxy
+models in Fourier space, \project{GalSim} must pre-compute look-up
+tables for the Fourier transforms, with a different table required for
+each Sersic index.  The expense of this operation means that the
+\project{GalSim} authors recommend using only discrete
+\sersic\ indices.  We have recently found that the Gaussian mixture
+components (amplitudes and variances) for \sersic\ galaxies vary
+smoothly with respect to \sersic\ index, so we can fit for a discrete
+set of indices and then interpolate for intermediate \sersic indices.
+This allows us to evaluate general \sersic\ models for the same
+computational cost as simple exponential or deVaucoulers models.
+Indeed, our latest Legacy Surveys release, Data Release 9, performs
+these fits at scale and reports general \sersic\ fits for millions of
+galaxies.
 
 
 
@@ -841,107 +859,6 @@ where $e_1$ and $e_2$ are the two ellipticity components and $e =
 $\cos \theta$ and $\sin \theta$ explicitly when transforming a galaxy
 into pixel space.
 
-% NO we still need $a$
-% In \project{the Tractor} we find this particularly useful because we
-% use a ``softened'' remapping of the ellipticity components to avoid
-% the hard edges in parameter space $\|e\| < 1$.  Since the pixel-space
-% covariance matrix can be computed using only 
-
-For convenience, we repeat here the mixture-of-Gaussians fits for the
-SDSS truncated exponential and deVaucouleurs profiles that we use in
-\project{the Tractor}:
-\begin{center}
-\begin{tabular}{cr@{.}lr@{.}lr@{.}lr@{.}l}
-\hline
-\textbf{Component} &
-\multicolumn{4}{c}{\textbf{Exponential}} & 
-\multicolumn{4}{c}{\textbf{deVaucoulers}} \\
-& \multicolumn{2}{c}{Amplitude}
-& \multicolumn{2}{c}{Variance}
-& \multicolumn{2}{c}{Amplitude}
-& \multicolumn{2}{c}{Variance} \\
-\hline
-1 & 
-$1$ & $99485977 \times 10^{-4}$
-&
-$1$ & $20078965 \times 10^{-3}$
-&
-$2$ & $01837690 \times 10^{-3}$
-&
-$2$ & $23759216 \times 10^{-4}$
-\\
-%
-2 &
-$2$ & $61612679 \times 10^{-3}$
-&
-$8$ & $84526493 \times 10^{-3}$
-&
-$1$ & $13678862 \times 10^{-2}$
-&
-$1$ & $00220099 \times 10^{-3}$
-\\
-%
-3 &
-$1$ & $89726655 \times 10^{-2}$
-&
-$3$ & $91463084 \times 10^{-2}$
-&
-$3$ & $24716253 \times 10^{-2}$
-&
-$4$ & $18731126 \times 10^{-3}$
-\\
-%
-4 &
-$1$ & $00186544 \times 10^{-1}$
-&
-$1$ & $39976817 \times 10^{-1}$
-&
-$7$ & $19288205 \times 10^{-2}$
-&
-$1$ & $69432589 \times 10^{-2}$
-\\
-%
-5 &
-$3$ & $68534484 \times 10^{-1}$
-&
-$4$ & $60962500 \times 10^{-1}$
-&
-$1$ & $34272271 \times 10^{-1}$
-&
-$6$ & $84850479 \times 10^{-2}$
-\\
-%
-6 &
-$5$ & $09490694 \times 10^{-1}$
-&
-$1$ & $50159566$
-&
-$2$ & $11362649 \times 10^{-1}$
-&
-$2$ & $87207080 \times 10^{-1}$
-\\
-%
-7 &
-\multicolumn{2}{c}{-} &
-\multicolumn{2}{c}{-} &
-$2$ & $70999815 \times 10^{-1}$
-&
-$1$ & $33320254$
-\\
-%
-8 &
-\multicolumn{2}{c}{-} &
-\multicolumn{2}{c}{-} &
-$2$ & $65578557 \times 10^{-1}$
-&
-$8$ & $40215071$
-\\
-\hline
-\end{tabular}
-\end{center}
-Fits for other numbers of mixture components are available in
-\cite{moggalaxy}.  The code used to compute these values is publicly
-available at \niceurl{https://github.com/davidwhogg/TheTractor}.
 
 \begin{thebibliography}
 
