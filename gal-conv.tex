@@ -13,7 +13,8 @@
 %   than the native pixel grid, as per Schlegel's comments
 
 
-\documentclass[11pt,preprint]{aastex}
+%\documentclass[11pt,letterpaper,preprint]{aastex}
+\documentclass[11pt,letterpaper]{aastex63}
 \usepackage{amssymb,amsmath,mathrsfs,color}
 \usepackage{bm}
 \usepackage{hyperref}
@@ -48,24 +49,32 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \newcommand{\gray}[1]{\textcolor{gray}{#1}}
 
-\slugcomment{To be submitted to The Astronomical Journal}
+%\slugcomment{To be submitted to The Astronomical Journal}
 
 \keywords{methods: data analysis --- surveys --- techniques: image processing}
 
 \begin{document}
 
 \title{A hybrid Fourier--Real Gaussian Mixture method for fast galaxy--PSF convolution}
-\author{Dustin~Lang\altaffilmark{1,2,3}}
-\altaffiltext{1}%
-{Perimeter Institute for Theoretical Physics,
-  31 Caroline St N, Waterloo, ON, N2L 2Y5, Canada}
-\altaffiltext{2}%
-{Department of Physics \& Astronomy,
- University of Waterloo,
- 200 University Ave W, Waterloo, ON, N2L 3G1, Canada}
-\altaffiltext{3}%
-{dstndstn@gmail.com}
-\date{DRAFT \today}
+\author{Dustin Lang} %~Lang\altaffilmark{1,2,3}}
+\affiliation{%
+  Perimeter Institute for Theoretical Physics,
+  31 Caroline Street North, Waterloo, ON N2L 2Y5, Canada}
+\affiliation{%
+  Department of Physics \& Astronomy,
+  University of Waterloo,
+  200 University Avenue West, Waterloo, ON N2L 3G1, Canada}
+% \altaffiltext{1}%
+% {Perimeter Institute for Theoretical Physics,
+%   31 Caroline St N, Waterloo, ON, N2L 2Y5, Canada}
+% \altaffiltext{2}%
+% {Department of Physics \& Astronomy,
+%  University of Waterloo,
+%  200 University Ave W, Waterloo, ON, N2L 3G1, Canada}
+% \altaffiltext{3}%
+% {dstndstn@gmail.com}
+% \date{DRAFT \today}
+\date{Dec 31, 2020}
 \shorttitle{Fast Galaxy--PSF Convolution}
 \shortauthors{Lang}
 
@@ -636,9 +645,15 @@ perform a sub-pixel shift.
 
 \section{Discussion}
 
-\Figref{fig:aliasing} demonstrates how this method avoids the high-frequency
-aliasing that results if we na\"ively evaluate the galaxy profile in
-pixel space.
+This method for convolution of astronomical galaxy profiles with point
+spread functions is both accurate and computationally efficient.  The
+accuracy is demonstrated in \Figref{fig:aliasing}, surpassing the
+accuracy of the significantly more expensive approach of using
+sub-pixel bins in real space.  This method handles the real-world
+complications of elliptical galaxy shapes and more complex galaxy
+profiles such as \sersic\ profiles.  Code implementing the method is
+publicly available in \emph{the
+  Tractor}\footnote{\niceurl{https://github.com/dstndstn/tractor}}.
 
 
 \begin{figure}[p!]
@@ -746,7 +761,7 @@ pixel space.
   \end{center}
 \end{figure}
 
-A significant portion of the computational cost of this method is in
+A lot of the computational cost of this method is in
 evaluating the \emph{exp} function rather than in the FFT or
 inverse-FFT, so fast \emph{exp} approximations\footnote{For example,
   \niceurl{https://github.com/herumi/fmath} as used in
@@ -785,14 +800,16 @@ galaxies.
 \acknowledgements
 
 I thank Erin Sheldon (BNL),
-David W.~Hogg (NYU), David J.~Schlegel (LBL), and John Moustakas (Siena)
+David W.~Hogg (NYU), David J.~Schlegel (LBL), and John Moustakas (Siena College)
 for helpful discussion and comments on this manuscript.
 
-Research at Perimeter Institute is supported by the Government of
-Canada through Industry Canada and by the Province of Ontario through
-the Ministry of Research \& Innovation.
+Research at Perimeter Institute is supported in part by the Government
+of Canada through the Department of Innovation, Science and Economic
+Development Canada and by the Province of Ontario through the Ministry
+of Colleges and Universities.
 
 
+\clearpage
 \appendix
 
 \section{Galaxy variances in pixel space}
