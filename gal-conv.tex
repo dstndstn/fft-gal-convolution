@@ -1,19 +1,9 @@
 % Copyright 2015--2020, Dustin Lang (Perimeter Institute).
 % All rights reserved.
 
-% TO-DO:
-
-% --in the intro, should I identify the ``problems'' and mention that
-%   we are going to solve them with our method??
-
-% - General Sersic models?!
-%   (another improvement over GalSim)
-
 % - talk about the possibilty of using PSF models sampled at other
 %   than the native pixel grid, as per Schlegel's comments
 
-
-%\documentclass[11pt,letterpaper,preprint]{aastex}
 \documentclass[11pt,letterpaper]{aastex63}
 \usepackage{amssymb,amsmath,mathrsfs,color}
 \usepackage{bm}
@@ -56,7 +46,7 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
 \begin{document}
 
 \title{A hybrid Fourier--Real Gaussian Mixture method for fast galaxy--PSF convolution}
-\author{Dustin Lang} %~Lang\altaffilmark{1,2,3}}
+\author{Dustin Lang}
 \affiliation{%
   Perimeter Institute for Theoretical Physics,
   31 Caroline Street North, Waterloo, ON N2L 2Y5, Canada}
@@ -64,16 +54,6 @@ pdfauthor={Dustin Lang},pdfsubject={Astronomical image processing}}
   Department of Physics \& Astronomy,
   University of Waterloo,
   200 University Avenue West, Waterloo, ON N2L 3G1, Canada}
-% \altaffiltext{1}%
-% {Perimeter Institute for Theoretical Physics,
-%   31 Caroline St N, Waterloo, ON, N2L 2Y5, Canada}
-% \altaffiltext{2}%
-% {Department of Physics \& Astronomy,
-%  University of Waterloo,
-%  200 University Ave W, Waterloo, ON, N2L 3G1, Canada}
-% \altaffiltext{3}%
-% {dstndstn@gmail.com}
-% \date{DRAFT \today}
 \date{Dec 31, 2020}
 \shorttitle{Fast Galaxy--PSF Convolution}
 \shortauthors{Lang}
@@ -181,6 +161,7 @@ user requests such a rendering, it produces the rendering on a larger
 image (possibly at considerable extra cost) and returns the un-aliased
 sub-image.  The hybrid Fourier/real method presented here provides an
 inexpensive alternative.
+
 % FIXME -- and the method for approximating galaxies with general
 % Sersic index allows the Sersic index to be fit cheaply.
 
